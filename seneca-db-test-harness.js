@@ -3,9 +3,10 @@
 
 var fs     = require('fs')
 var argv   = require('optimist').argv
-var db     = argv.db
+var db     = argv.db ? argv.db : process.env.db
 var seneca = require('seneca')()
 
+// validate db choice
 var dbs_supported = ['jsonfile-store']
 if (!db) return console.error('Error: no db specified. try --db=jsonfile-store or any other: ' + dbs_supported)
 if (dbs_supported.indexOf(db) === -1) return console.error('Error: unsupported db. try one of those: ' + dbs_supported)
@@ -24,7 +25,7 @@ require('dns').lookup(require('os').hostname(), function (err, addr) {
   // ensure meta folder
   if (!fs.existsSync(metapath)) fs.mkdirSync(metapath)
 
-  // write server address to output file
+  // write meta info into the output file
   var info = {
     ip:host,
     port:port

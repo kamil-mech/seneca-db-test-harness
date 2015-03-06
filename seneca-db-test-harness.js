@@ -7,7 +7,7 @@ var db     = argv.db ? argv.db : process.env.db
 var seneca = require('seneca')()
 
 // validate db choice
-var dbs_supported = ['jsonfile-store']
+var dbs_supported = ['mem-store', 'jsonfile-store']
 if (!db) return console.error('Error: no db specified. try --db=jsonfile-store or any other: ' + dbs_supported)
 if (dbs_supported.indexOf(db) === -1) return console.error('Error: unsupported db. try one of those: ' + dbs_supported)
 
@@ -32,26 +32,28 @@ require('dns').lookup(require('os').hostname(), function (err, addr) {
   }
   fs.writeFile(metafile, JSON.stringify(info), function(err) {
     if(err) throw err
-    console.log('\ndb address: '+ host + ':' + port + '\n')
+      console.log('\nusing ' + db)
+      console.log('db address: '+ host + ':' + port + '\n')
   })
 
-  // init db config
-  var db_path = __dirname + '/db'
-  var db_args = {}
-  var pins = []
   // ensure db folder
+  var db_path = __dirname + '/db'
   if (!fs.existsSync(db_path)) fs.mkdirSync(db_path)
+    
+  // apply default pins
+  var pins = ['role:entity, cmd:*',  'cmd:ensure_entity',  'cmd:define_sys_entity']
 
   // apply db-specific config
-  if (db === 'jsonfile-store')
-  {
-    db_path = db_path + '/jsonfile'
+  var db_args = {}
+  if (db === 'mem-store') {
+    db_args = {web:{dump:true}}
+  }
+  else if (db === 'jsonfile-store') {
     db_args = {folder:db_path}
-    pins = ['role:entity, cmd:*',  'cmd:ensure_entity',  'cmd:define_sys_entity']
   }
 
   // ensure chosen db subfolder
-  if (!fs.existsSync(db_path)) fs.mkdirSync(db_path)
+  if (!fs.existsSync(db_path)) fs.mkdirSync(db_path +  '/' + db)
 
   // open db service
   seneca

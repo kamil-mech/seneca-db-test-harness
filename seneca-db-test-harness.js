@@ -1,9 +1,9 @@
 // This file is PUBLIC DOMAIN. You are free to cut-and-paste to start your own projects, of any kind
 "use strict"
 
-module.exports = function() {
-
-  this.host = function(db, callback){
+module.exports = function()
+{
+  this.host = function(db){
     var fs     = require('fs')
     var seneca = require('seneca')()
 
@@ -29,6 +29,7 @@ module.exports = function() {
         
       // apply default pins
       var pins = ['role:entity, cmd:*',  'cmd:ensure_entity',  'cmd:define_sys_entity']
+      var server_config = {host:host, port:port, pins:pins}
 
       // apply db-specific config
       var db_args
@@ -36,17 +37,13 @@ module.exports = function() {
         db_args = {web:{dump:true}}
       }
       else if (db === 'jsonfile-store') {
-        db_args = {folder:db_path}
+        db_args = {folder:db_path + db}
       }
 
-      var server_args = {host:host, port:port, pins:pins}
       // open db service
       seneca
       .use(db, db_args)
-      .listen(server_args, function(){
-        server_args.name = db
-        callback(server_args)
-      })
+      .listen(server_config)
     })
   }
 }

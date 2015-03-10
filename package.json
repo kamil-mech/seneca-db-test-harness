@@ -1,6 +1,6 @@
 {
   "name": "seneca-db-test-harness",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Runs and exposes seneca db stores in separate process or in docker container",
   "main": "seneca-db-test-harness.js",
   "repository": {

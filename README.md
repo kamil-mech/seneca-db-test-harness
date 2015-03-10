@@ -1,5 +1,5 @@
 # seneca-db-test-harness
-Runs and exposes seneca db stores in separate process or in docker container.
+Runs and exposes seneca db stores as separate process
 
 This is a personal repository. It is not part of the official seneca utilities.
 
@@ -9,16 +9,10 @@ Install:
 ```
 
 Currently supports:
+- mem-store
 - jsonfile-store
 
-Docker usage:
-- coming soon
-
-Localhost usage:
-- run
-```
-node seneca-db-test-harness.js --db=jsonfile-store
-```
+Usage:
 - add code below to your app(before you add any plugins with seneca.use)
 ```
 seneca

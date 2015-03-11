@@ -3,7 +3,7 @@
 
 module.exports = function()
 {
-  this.host = function(db){
+  this.host = function(db, callback){
     var fs     = require('fs')
     var seneca = require('seneca')()
 
@@ -39,6 +39,9 @@ module.exports = function()
       else if (db === 'jsonfile-store') {
         db_args = {folder:db_path + db}
       }
+
+      // return server config before hosting
+      callback(server_config)
 
       // open db service
       seneca

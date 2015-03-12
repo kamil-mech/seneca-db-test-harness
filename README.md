@@ -15,15 +15,23 @@ Currently supports:
 Usage:
 - add code below to your app(before you add any plugins with seneca.use)
 ```
-seneca
-.client({port:44040, pins:['role:entity, cmd:*',  'cmd:ensure_entity',  'cmd:define_sys_entity']})
-.ready(function(){
-  seneca = this
-  
-  // do stuff, e.g.
-  seneca.use('some-plugin')
-  seneca.make$('something').save$()
-  seneca.make$('something').list$()
-})
+  var Harness = require('seneca-db-test-harness')
+  var harness = new Harness()
+
+  harness.host(db, function(server_config){
+    setTimeout(function(){
+      seneca
+      .client(server_config)
+      .ready(function(){
+
+        seneca = this
+        
+        // do stuff, e.g.
+        seneca.use('some-plugin')
+        seneca.make$('something').save$()
+        seneca.make$('something').list$()
+      })
+    }, 2000)
+  })
 ```
 - run your app

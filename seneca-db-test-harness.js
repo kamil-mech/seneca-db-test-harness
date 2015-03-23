@@ -5,7 +5,7 @@ module.exports = function()
 {
   this.host = function(db, callback){
     var fs     = require('fs')
-    var seneca = require('seneca')()
+    var seneca = require('seneca')({default_plugins:{'mem-store':false}})
 
     // validate db choice
     var dbs_supported = ['mem-store', 'jsonfile-store']

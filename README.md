@@ -1,5 +1,5 @@
 # seneca-db-test-harness
-Runs and exposes seneca db stores as separate process
+Runs and exposes seneca db stores as separate server
 
 This is a personal repository. It is not part of the official seneca utilities.
 

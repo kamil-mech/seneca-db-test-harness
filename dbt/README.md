@@ -85,16 +85,16 @@ dbs supported:
 
 *** when no dbs specified, it tests them all
 
-| flag |              operation              |
-|------|-------------------------------------|
-| -dbs | specify dbs                         |
-| -fd  | force docker pull                   |
-| -fb  | force app build                     |
-| -tu  | unit test only                      |
-| -ta  | acceptance test only                |
-| -nt  | no test, just run everything        |
-| -ner | never erase temp files on cleanup   |
-| -aer | always erase temp files on cleanup  |
+| flag |              operation              |   used in  |
+|------|-------------------------------------|------------|
+| -dbs | specify dbs                         |    run     |
+| -fd  | force docker pull                   |    run     |
+| -fb  | force app build                     |    run     |
+| -tu  | unit test only                      |    run     |
+| -ta  | acceptance test only                |    run     |
+| -nt  | no test, just run everything        |    run     |
+| -ner | never erase temp files on cleanup   | run, clean |
+| -aer | always erase temp files on cleanup  | run, clean |
 
 e.g.
 

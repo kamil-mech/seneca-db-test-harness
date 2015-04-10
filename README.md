@@ -1,7 +1,7 @@
 # seneca-db-test-harness
 
 Two main functionalities:
-- Setup docker containers: run, link, feed (DBT Manager)
+- Setup docker containers: run, link, feed and then run tests against them (DBT Manager)
 - Allow offline seneca stores to listen for seneca connections like regular DBs (Harness)
 
 Install:

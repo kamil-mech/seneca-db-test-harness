@@ -1,7 +1,8 @@
 # seneca-db-test-harness
-Runs and exposes seneca db stores as separate server
 
-This is a personal repository. It is not part of the official seneca utilities.
+Two main functionalities:
+- Setup docker containers: run, link, feed (DBT Manager)
+- Allow offline seneca stores to listen for seneca connections like regular DBs (Harness)
 
 Install:
 ```
@@ -9,10 +10,17 @@ Install:
 ```
 
 Currently supports:
-- mem-store
-- jsonfile-store
+- mem-store (listen feature)
+- jsonfile-store (listen feature)
+- mongo-store
+- redis-store
+- postgresql-store
+- mysql-store
 
-Usage:
+DBT Manager usage:
+- See this [README](../master/dbt/README.md)
+
+Listen feature (Harness) usage:
 - add code below to your app(before you add any plugins with seneca.use)
 ```
   var Harness = require('seneca-db-test-harness')

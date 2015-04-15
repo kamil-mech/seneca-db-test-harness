@@ -10,7 +10,7 @@ if [[ "$QUERY" == "-a" ]]; then
   OUTPUTLINES=0
 fi
 
-EEXIST=$(bash $PREFIX/file-exist.sh)
+EEXIST=$(bash $PREFIX/file-exist.sh $CFGFILE)
 if [[ "$EEXIST" = false ]]; then node $PREFIX/conf.js $CFGFILE; fi
 
 FILE=$(bash $PREFIX/read-inspect.sh -nk conf)

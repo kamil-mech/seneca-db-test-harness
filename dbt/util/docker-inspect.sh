@@ -4,6 +4,8 @@ PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 DESC=$1
 PORT=$2
+declare -i TIMEOUT=$3
+declare -i TICKS_PASSED=0
 
 echo
 echo INSPECTING $DESC AT PORT $PORT
@@ -13,9 +15,20 @@ while [[ "$IP" = "" ]]; do
       IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $HEX)
     fi
 
-    if [[ "$IP" = "" ]]; then
+    if [[ "$IP" != "" ]]; then
+      echo
+      echo SUCCESS
+    else
       printf '.'
-      sleep 0.4
+      sleep 1
+
+      if [[ "$TIMEOUT" != "0" ]]; then
+        ((TICKS_PASSED++))
+        if [[ $TICKS_PASSED -gt $TIMEOUT ]]; then
+          echo TIMEOUT
+          break
+        fi
+      fi
     fi
 done
 echo

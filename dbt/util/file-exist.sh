@@ -3,6 +3,6 @@ trap 'kill $$' SIGINT
 
 FILE=$1
 
-if [[ ! -f "$FILE" ]]; then echo "false"
-else echo "true"
+if [[ -d "$FILE" || -f "$FILE" ]]; then echo "true"
+else echo "false"
 fi

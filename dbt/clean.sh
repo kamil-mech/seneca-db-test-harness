@@ -23,6 +23,9 @@ do
     if [[ "$VAR" = "-rcf" ]]; then RCF=true; fi
 done
 
+echo "ERASING TEMP"
+rm -rf $PREFIX/util/temp/ # TODO change
+
 if [[ "$NER" == false ]]; then
   echo
   echo "CLEANING AFTER DB TEST"
@@ -70,7 +73,7 @@ if [[ "$NER" == false ]]; then
   fi
 else
   echo
-  echo "OMIT TEMP FILE ERASE"
+  echo "OMIT CUSTOM FILE ERASE"
   echo
 fi
 

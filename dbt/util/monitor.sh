@@ -26,7 +26,17 @@ function label_of {
   NAME=${NAME:${#NAME[0]}}       # remove first arg
   NAME=$(echo ${NAME[@]})        # back to string
 
+  # get docker part only
   RAW=$(bash $PREFIX/split.sh "$NAME" ";" 0)
+
+  TEMP=""
+  for ARG in $RAW; do
+    # consider only ones that don't start with a dash
+    FCHAR="$(echo $ARG | head -c 1)"
+    if [[ "$FCHAR" != "-" ]]; then TEMP+="$ARG "; fi
+  done
+  RAW=$(echo $TEMP)
+
   RAW=$(echo $RAW | rev)
   RAW=$(bash $PREFIX/split.sh "$RAW" " " 0)
   RAW=$(echo $RAW | rev)

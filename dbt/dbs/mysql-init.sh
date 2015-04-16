@@ -12,20 +12,25 @@ echo PASSWORD:$PASSWORD
 echo NAME:$NAME
 echo SCHEMA:$SCHEMA
 
-docker run --rm --name mysql-inst -e MYSQL_DATABASE=$NAME -e MYSQL_ROOT_PASSWORD=$PASSWORD mysql --skip-name-resolve  &
-sleep 1
+# run
+IMG="mysql --rm --name mysql-inst -e MYSQL_DATABASE=$NAME -e MYSQL_ROOT_PASSWORD=$PASSWORD mysql --skip-name-resolve"
+bash $PREFIX/../util/dockrunner.sh "$IMG"
 
-# TODO remove
-PORT=3306
-bash $PREFIX/../util/docker-inspect.sh "mysql DB" $PORT
-HEX=$(bash $PREFIX/../util/read-inspect.sh hex)
-IP=$(bash $PREFIX/../util/read-inspect.sh ip)
+# setup exit trap
+STREAMFILE="$PREFIX/../util/temp/"$(ls -a $PREFIX/../util/temp | grep "mysql.stream.out") # TODO this needs to be replaced
+trap 'trap - EXIT; echo; echo DONE; echo MONITOR-FIN >> $STREAMFILE; read;' EXIT;
 
-export MYSQL_HOST=$IP
-export MYSQL_TCP_PORT=$PORT
+# get container info
+DB_HEX=$(cat $PREFIX/../util/temp/$(ls -a $PREFIX/../util/temp | grep "$DB.hex.out"))
+DB_HEX=${DB_HEX:0:8}
+DB_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $DB_HEX)
+DB_PORT=$(bash $PREFIX/../util/docker-port.sh $DB_HEX)
+
+export MYSQL_HOST=$DB_IP
+export MYSQL_TCP_PORT=$DB_PORT
 export MYSQL_PWD=$PASSWORD
 
-bash $PREFIX/../util/wait-connect.sh $IP $PORT
+bash $PREFIX/../util/wait-connect.sh $DB_IP $DB_PORT
 
 echo ---
 echo INIT START

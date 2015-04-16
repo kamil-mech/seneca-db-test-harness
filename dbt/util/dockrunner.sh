@@ -4,6 +4,7 @@ PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 #
 # dockrunner supports monitoring and after-scripts
+# it also ensures listen/crash takes place
 #
 
 # fetch db info
@@ -39,16 +40,7 @@ SCRIPTS=${IMG:PREFIX_LENGTH:FULL_LENGTH}
 echo "#!/bin/bash" > "$SCRIPT_FILE"
 echo "echo $SCRIPTS" >> "$SCRIPT_FILE" 
 
-# setup the command to be ran
-HANDLER="trap 'trap - EXIT; echo; echo DONE; echo MONITOR-FIN >> $STREAMFILE; read;' EXIT;"
-if [[ "$RAWIMG" == "" ]]; then DOCKER="echo"
-else DOCKER="docker run $RAWIMG 2>&1 | tee -a $STREAMFILE"  
-fi
-SCRIPT="; bash $SCRIPT_FILE 2>&1 | tee -a $STREAMFILE"
-COMMAND="$HANDLER $DOCKER $SCRIPT"
-
 # determine terminal title
-
 if [[ "$SCRIPTS" == *"test"* ]]; then
   TITLE="Test"
 
@@ -73,13 +65,27 @@ else
 fi
 TITLE="$TITLE ($LABEL)"
 
+# setup the command to be ran
+HANDLER="trap 'trap - EXIT; echo; echo DONE; echo MONITOR-FIN >> $STREAMFILE; read;' EXIT;"
+if [[ "$RAWIMG" == "" ]]; then DOCKER="echo"
+else DOCKER="docker run $RAWIMG 2>&1 | tee -a $STREAMFILE"  
+fi
+SCRIPT="; bash $SCRIPT_FILE 2>&1 | tee -a $STREAMFILE"
+COMMAND="$HANDLER $DOCKER $SCRIPT"
+
 # run
-nohup gnome-terminal --title="$TITLE" --disable-factory -x bash -c "$COMMAND" >/dev/null 2>&1 &
+echo LABEL IS $LABEL
+if [[ "$LABEL" == *"postgres"* || "$LABEL" == *"mysql"* ]]; then
+  echo -ne "\033]0;$TITLE\007" # sets title
+  bash -c "$COMMAND" &
+else
+  nohup gnome-terminal --title="$TITLE" --disable-factory -x bash -c "$COMMAND" >/dev/null 2>&1 &
+fi
 
 # spawn cooldown
 sleep 2
 
-# get info
+# get container info
 if [[ "$LABEL" != *"instance"* ]]; then
   HEX=$(cat $PREFIX/temp/$LABEL.hex.out)
   HEX=${HEX:0:8}

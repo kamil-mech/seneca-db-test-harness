@@ -12,6 +12,8 @@ PORT=$5
 if [[ "$DB" = "postgres" ]]; then DB="postgresql"; fi
 DB="$DB-store"
 
+sleep 1
+
 cd $WORKDIR
 if [[ "$TU" = true ]]; then
     npm run utest --db=$DB --ip=$IP --port=$PORT

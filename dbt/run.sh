@@ -108,8 +108,14 @@ do
       if [[ "$PEEK" != "ERR" && "$PEEK" != "FIN" && "$DB_PORT" != "" ]]; then
         bash $PREFIX/util/wait-connect.sh $DB_IP $DB_PORT
       fi
-    else
+    else      
       bash $PREFIX/util/dockrunner.sh "$DB" "--rm --name $DB-inst $DB"
+      
+      # get db info
+      DB_HEX=$(cat $PREFIX/util/temp/$(ls -a $PREFIX/util/temp | grep "$DB.hex.out"))
+      DB_HEX=${DB_HEX:0:8}
+      DB_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $DB_HEX)
+      DB_PORT=$(bash $PREFIX/util/docker-port.sh $DB_HEX)
     fi
 
   else

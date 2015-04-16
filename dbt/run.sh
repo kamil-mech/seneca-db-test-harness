@@ -22,6 +22,7 @@ FB=false
 TU=false
 TA=false
 NT=false
+AUTO=false
 declare -a DBS=""
 POPULATING=false
 for VAR in "${ARGS[@]}"
@@ -34,6 +35,7 @@ do
   elif [[ "$VAR" == "-tu" ]]; then TU=true;
   elif [[ "$VAR" == "-ta" ]]; then TA=true;
   elif [[ "$VAR" == "-nt" ]]; then NT=true;
+  elif [[ "$VAR" == "-auto" ]]; then AUTO=true;
   # dbs can be directly specified, no constraints
   # it is also safe to not make any dash prefix validations thanks to elif
   elif [[ "$VAR" == "-dbs" ]]; then POPULATING=true
@@ -61,6 +63,9 @@ declare -a IGNORED=()
 
 # generate conf
 node $PREFIX/util/conf.js $CFGFILE
+
+# clean monitor data
+rm -rf $PREFIX/util/log/
 
 # main body that iterates over all dbs
 for DB in ${DBS[@]}
@@ -150,15 +155,23 @@ do
     bash $PREFIX/util/dockrunner.sh "$DB" "; bash $PREFIX/util/test.sh $DB $TU $TA $DB_IP $DB_PORT"
   fi
 
-  # prepare for next
-  echo
-  echo "TAP [ENTER] KEY TO"
-  echo "STOP ALL AND CLEAN BEFORE NEXT"
-  read
-  echo 
-  bash $PREFIX/clean.sh "${ARGS[@]}" -prompt
-echo
-done
+  if [[ "$AUTO" == true ]]; then
+    # monitor for errors
+    bash $PREFIX/util/monitor.sh "$DB"
+    bash $PREFIX/clean.sh "${ARGS[@]}"
+    echo
+  else
+    # prepare for next
+    echo
+    echo "TAP [ENTER] KEY TO"
+    echo "STOP ALL AND CLEAN BEFORE NEXT"
+    read
+    echo
+    bash $PREFIX/clean.sh "${ARGS[@]}" -prompt
+    echo
+  fi
 
+
+done
 # erasing temp files
 TEMP=$(bash $PREFIX/util/read-inspect.sh conf)

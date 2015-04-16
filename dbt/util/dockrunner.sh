@@ -66,15 +66,15 @@ fi
 TITLE="$TITLE ($LABEL)"
 
 # setup the command to be ran
-HANDLER="trap 'trap - EXIT; echo; echo DONE; echo MONITOR-FIN >> $STREAMFILE; read;' EXIT;"
+ON_END="echo; echo DONE; echo MONITOR-FIN >> $STREAMFILE; read"
+HANDLER="trap 'trap - EXIT; $ON_END' EXIT;"
 if [[ "$RAWIMG" == "" ]]; then DOCKER="echo"
 else DOCKER="docker run $RAWIMG 2>&1 | tee -a $STREAMFILE"  
 fi
-SCRIPT="; bash $SCRIPT_FILE 2>&1 | tee -a $STREAMFILE"
+SCRIPT="; bash $SCRIPT_FILE 2>&1 | tee -a $STREAMFILE; $ON_END"
 COMMAND="$HANDLER $DOCKER $SCRIPT"
 
 # run
-echo LABEL IS $LABEL
 if [[ "$LABEL" == *"postgres"* || "$LABEL" == *"mysql"* ]]; then
   echo -ne "\033]0;$TITLE\007" # sets title
   bash -c "$COMMAND" &

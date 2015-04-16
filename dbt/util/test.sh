@@ -20,7 +20,3 @@ elif [[ "$TA" = true ]]; then
 else
     npm test --db=$DB --ip=$IP --port=$PORT
 fi
-
-echo "TEST IS DONE"
-read
-echo 

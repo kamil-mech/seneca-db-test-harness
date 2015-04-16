@@ -23,7 +23,8 @@ TU=false
 TA=false
 NT=false
 AUTO=false
-declare -a DBS=""
+declare -a DEFAULT_DBS=("mem" "mongo" "jsonfile" "redis" "postgres" "mysql")
+declare -a DBS=${DEFAULT_DBS[@]}
 POPULATING=false
 for VAR in "${ARGS[@]}"
 do
@@ -38,10 +39,12 @@ do
   elif [[ "$VAR" == "-auto" ]]; then AUTO=true;
   # dbs can be directly specified, no constraints
   # it is also safe to not make any dash prefix validations thanks to elif
-  elif [[ "$VAR" == "-dbs" ]]; then POPULATING=true
+  elif [[ "$VAR" == "-dbs" ]]; then POPULATING=true; declare -a DBS=()
   elif [[ "$POPULATING" == true ]]; then
+    # calculating multiplicity
     IFS='-' read -ra IN <<< "$VAR"
     DBTRIM="${IN[0]}"
+    if [[ "$DBTRIM" == "all" ]]; then DBTRIM=${DEFAULT_DBS[@]}; fi
     IFS='x' read -ra IN <<< "${IN[1]}"
     TIMES=${IN[0]}
     if [[ "$TIMES" == "" ]]; then TIMES=1; fi
@@ -53,11 +56,6 @@ do
   fi
 done
 
-# read db chosen
-if [[ "${DBS[@]}" == "" ]]; then
-  # defaults to this list
-  declare -a DBS=("mem" "mongo" "jsonfile" "redis" "postgres" "mysql")
-fi
 declare -a LINKLESS=("mem" "jsonfile")
 declare -a IGNORED=()
 

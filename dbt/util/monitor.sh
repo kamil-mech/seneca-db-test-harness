@@ -40,7 +40,7 @@ function label_of {
   RAW=$(echo $RAW | rev)
   RAW=$(bash $PREFIX/split.sh "$RAW" " " 0)
   RAW=$(echo $RAW | rev)
-  if [[ "$RAW" == "LABEL" ]]; then RAW="instance"; fi
+  if [[ "$RAW" == "LABEL" ]]; then RAW="script"; fi
   LABEL="[$LABEL_INDEX]$RAW"
   LOGFILE=$(name_of $LABEL LOG)
 

@@ -47,7 +47,7 @@ if [[ "$SCRIPTS" == *"test"* ]]; then
   # fixes label, but needs to be compatible with monitor
   # CLASSIFICATION=$(bash $PREFIX/split.sh "$LABEL" "]" 1)
   # ID=$(bash $PREFIX/split.sh "$LABEL" "$CLASSIFICATION" 0)
-  # if [[ "$CLASSIFICATION" == "instance" ]]; then LABEL="$ID""test"; fi
+  # if [[ "$CLASSIFICATION" == "script" ]]; then LABEL="$ID""test"; fi
 elif [[ "$RAWIMG" == *"--env"* ]]; then
   declare -a LINKLESS=("mem" "jsonfile")
   LINKED=true
@@ -86,7 +86,7 @@ fi
 sleep 2
 
 # get container info
-if [[ "$LABEL" != *"instance"* ]]; then
+if [[ "$LABEL" != *"script"* ]]; then
   HEX=$(cat $PREFIX/temp/$LABEL.hex.out)
   HEX=${HEX:0:8}
   IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $HEX)

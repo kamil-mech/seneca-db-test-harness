@@ -13,6 +13,7 @@ echo SCHEMA:$SCHEMA
 docker run --rm --name postgres-inst -e POSTGRES_USER=$USER -e POSTGRES_USER=$USER -e POSTGRES_PASSWORD=$PASSWORD postgres &
 sleep 1
 
+# TODO remove
 PORT=5432
 bash $PREFIX/../util/docker-inspect.sh "postgres DB" $PORT
 HEX=$(bash $PREFIX/../util/read-inspect.sh hex)

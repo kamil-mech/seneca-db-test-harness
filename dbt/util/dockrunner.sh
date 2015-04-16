@@ -27,6 +27,12 @@ SCRIPT_FILE=$(bash $PREFIX/monitor.sh $DB NAME $LABEL SCRIPT)
 
 # separate scripts and docker
 declare -a RAWIMG=$(bash $PREFIX/split.sh "$IMG" ";" 0) # contains flags and args
+# docker generates file containing hex id of container when --cidfile is specified
+if [[ "$RAWIMG" != "" ]]; then
+  IMG="--cidfile='$PREFIX/temp/$LABEL.hex.out' $IMG"
+  declare -a RAWIMG=$(bash $PREFIX/split.sh "$IMG" ";" 0) # update
+fi
+
 FULL_LENGTH=${#IMG}
 PREFIX_LENGTH=${#RAWIMG}
 SCRIPTS=${IMG:PREFIX_LENGTH:FULL_LENGTH}
@@ -50,7 +56,7 @@ if [[ "$SCRIPTS" == *"test"* ]]; then
   # CLASSIFICATION=$(bash $PREFIX/split.sh "$LABEL" "]" 1)
   # ID=$(bash $PREFIX/split.sh "$LABEL" "$CLASSIFICATION" 0)
   # if [[ "$CLASSIFICATION" == "instance" ]]; then LABEL="$ID""test"; fi
-elif [[ "$RAWIMG" == *"--link"* && "$RAWIMG" == *"-inst"* && "$RAWIMG" == *"-link"* ]]; then
+elif [[ "$RAWIMG" == *"--env"* ]]; then
   declare -a LINKLESS=("mem" "jsonfile")
   LINKED=true
   for LINK in ${LINKLESS[@]}
@@ -73,26 +79,23 @@ nohup gnome-terminal --title="$TITLE" --disable-factory -x bash -c "$COMMAND" >/
 # spawn cooldown
 sleep 2
 
-# get port info
-for PARAM in $RAWIMG[@]; do
-  if [[ "$PARAM}" == *"-p"* ]]; then NEXT=true
-  elif [[ "$NEXT" == true ]]; then
-    PORT="$PARAM"
-    PORT=$(bash $PREFIX/split.sh "$PORT" ":" 0)
-    break
+# get info
+if [[ "$LABEL" != *"instance"* ]]; then
+  HEX=$(cat $PREFIX/temp/$LABEL.hex.out)
+  HEX=${HEX:0:8}
+  IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $HEX)
+  PORT=$(bash $PREFIX/docker-port.sh $HEX)
+  echo $LABEL DETAILS:
+  echo $LABEL DOCKER HEX "$HEX"
+  echo $LABEL ADDR "$IP:$PORT"
+  echo
+
+  # detect errors
+  PEEK=$(bash $PREFIX/peek.sh $STREAMFILE $LOGFILE true)
+
+  # if no errors
+  # wait for image to be up & listening
+  if [[ "$PEEK" != "ERR" && "$PEEK" != "FIN" && "$PORT" != "" ]]; then
+    bash $PREFIX/wait-connect.sh $IP $PORT
   fi
-done
-
-# detect errors
-PEEK=$(bash $PREFIX/peek.sh $STREAMFILE $LOGFILE true)
-
-> $PREFIX/temp.hex.out
-> $PREFIX/temp.ip.out
-# check if image is up & listening
-if [[ "$PEEK" != "ERR" && "$PEEK" != "FIN" && "$PORT" != "" ]]; then
-
-  bash $PREFIX/docker-inspect.sh "$LABEL" $PORT
-  HEX=$(bash $PREFIX/read-inspect.sh -nk hex)
-  IP=$(bash $PREFIX/read-inspect.sh -nk ip)
-  bash $PREFIX/wait-connect.sh $IP $PORT
 fi

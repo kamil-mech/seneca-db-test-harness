@@ -74,14 +74,6 @@ do
         if [[ "$VAR" == "$DB" ]]; then LINKED=false; fi
     done
 
-    # config db port
-    if [[ "$DB" == "mongo" ]]; then DB_PORT=27017
-    elif [[ "$DB" == "postgres" ]]; then DB_PORT=5432
-    elif [[ "$DB" == "redis" ]]; then DB_PORT=6379
-    elif [[ "$DB" == "mysql" ]]; then DB_PORT=3306
-    else DB_PORT=""
-    fi
-
     # ensuring docker image and running it
     echo 
     echo PREPARING $DB DB FOR TEST
@@ -91,15 +83,15 @@ do
 
         # run db
         echo RUN DB
-        bash $PREFIX/util/dockrunner.sh "$DB" "-p $DB_PORT:$DB_PORT --rm --name $DB-inst $DB"
+        bash $PREFIX/util/dockrunner.sh "$DB" "--rm --name $DB-inst $DB"
+
+        # get db info
+        DB_HEX=$(cat $PREFIX/util/temp/$(ls -a $PREFIX/util/temp | grep "$DB.hex.out"))
+        DB_HEX=${DB_HEX:0:8}
+        DB_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $DB_HEX)
+        DB_PORT=$(bash $PREFIX/util/docker-port.sh $DB_HEX)
     else
         echo USING SENECA DB TEST HARNESS FOR $DB
-    fi
-
-    # get db info
-    if [[ "$DB_PORT" != "" ]]; then
-        DB_HEX=$(bash $PREFIX/util/read-inspect.sh hex)
-        DB_IP=$(bash $PREFIX/util/read-inspect.sh ip)
     fi
 
     # running app, rebuild is optional
@@ -123,7 +115,10 @@ do
           sleep 0.1
 
           IMG=$(bash $PREFIX/util/split.sh "$DIMG" "@" $I)
-          IMG="--link $DB-inst:$DB-link -e db=$DB-store $IMG"
+          EXTRAS=""
+          if [[ "$LINKED" == true ]]; then EXTRAS="--link $DB-inst:$DB-link --env db=$DB-store"; fi
+          EXTRAS+=" --env db=$DB-store"
+          IMG="$EXTRAS $IMG"
 
           bash $PREFIX/util/dockrunner.sh "$DB" "$IMG"
         done

@@ -15,6 +15,7 @@ echo SCHEMA:$SCHEMA
 docker run --rm --name mysql-inst -e MYSQL_DATABASE=$NAME -e MYSQL_ROOT_PASSWORD=$PASSWORD mysql --skip-name-resolve  &
 sleep 1
 
+# TODO remove
 PORT=3306
 bash $PREFIX/../util/docker-inspect.sh "mysql DB" $PORT
 HEX=$(bash $PREFIX/../util/read-inspect.sh hex)

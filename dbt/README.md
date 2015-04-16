@@ -153,11 +153,9 @@ Adding new DBs:
 - @ run.sh
 - 1) Add entry to DBS array
 - 2) Check docker image name
-- 3) Set port
-- @ docker-db.sh
-- 4) Set base(optional)
+- @ dockrunner.sh
 - -> For SQL-based DBs you want to make init script that loads schema file. See dbs folder
 - @ app
-- 5) Go to your app and config it to connect to the DB
-- @ conf.js && docker-db.sh
-- 6) Make sure they use relevant options entries
+- 4) Go to your app and config it to connect to the DB
+- @ conf.js
+- 5) Make sure they uses

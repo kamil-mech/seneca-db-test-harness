@@ -85,16 +85,17 @@ dbs supported:
 
 *** when no dbs specified, it tests them all
 
-| flag |              operation              |   used in  |
-|------|-------------------------------------|------------|
-| -dbs | specify dbs                         |    run     |
-| -fd  | force docker pull                   |    run     |
-| -fb  | force app build                     |    run     |
-| -tu  | unit test only                      |    run     |
-| -ta  | acceptance test only                |    run     |
-| -nt  | no test, just run everything        |    run     |
-| -ner | never erase temp files on cleanup   | run, clean |
-| -aer | always erase temp files on cleanup  | run, clean |
+| flag  |                           operation                            |   used in  |
+|-------|----------------------------------------------------------------|------------|
+| -dbs  | specify dbs                                                    |    run     |
+| -fd   | force docker pull                                              |    run     |
+| -fb   | force app build                                                |    run     |
+| -tu   | unit test only                                                 |    run     |
+| -ta   | acceptance test only                                           |    run     |
+| -nt   | no test, just run everything                                   |    run     |
+| -auto | run through all without manual control and produce log report  |    run     |
+| -ner  | never erase custom temp files on cleanup                       | run, clean |
+| -aer  | always erase custom temp files on cleanup                      | run, clean |
 
 e.g.
 
@@ -152,10 +153,11 @@ Adding new DBs:
 
 - @ run.sh
 - 1) Add entry to DBS array
+- @ image-check.sh
 - 2) Check docker image name
-- @ dockrunner.sh
-- -> For SQL-based DBs you want to make init script that loads schema file. See dbs folder
+- @ run.sh
+- -> For SQL-based DBs you want to make init script that loads schema file. See postgres and mysql
 - @ app
 - 4) Go to your app and config it to connect to the DB
-- @ conf.js
-- 5) Make sure they uses
+- @ conf.js & where appropiate
+- 5) Make sure it uses required data from app's options file

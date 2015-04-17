@@ -13,20 +13,15 @@ do
   EEXIST=$(bash $PREFIX/file-exist.sh $FOLDER)
   if [[ "$EEXIST" = false ]]; then mkdir "$FOLDER"; fi
 done
-# ensure required temp files
-EEXIST=$(bash $PREFIX/file-exist.sh $PREFIX/temp/label_index.out)
-if [[ "$EEXIST" = false ]]; then touch "$PREFIX/temp/label_index.out"; fi
 
 # generates label based on image name
 function label_of {
-  LABEL_INDEX=$(cat $PREFIX/temp/label_index.out)
-  if [[ "$LABEL_INDEX" == "" ]]; then LABEL_INDEX=0; fi
 
   IFS=" " read -ra NAME <<< "$@" # from args to array
   NAME=${NAME:${#NAME[0]}}       # remove first arg
   NAME=$(echo ${NAME[@]})        # back to string
 
-  # get docker part only
+  # get docker half only
   RAW=$(bash $PREFIX/split.sh "$NAME" ";" 0)
 
   TEMP=""
@@ -41,6 +36,14 @@ function label_of {
   RAW=$(bash $PREFIX/split.sh "$RAW" " " 0)
   RAW=$(echo $RAW | rev)
   if [[ "$RAW" == "LABEL" ]]; then RAW="script"; fi
+
+  # ensure required temp file
+  EEXIST=$(bash $PREFIX/file-exist.sh $PREFIX/temp/$RAW.label_index.out)
+  if [[ "$EEXIST" = false ]]; then touch "$PREFIX/temp/$RAW.label_index.out"; fi
+  # resolve label ID
+  LABEL_INDEX=$(cat $PREFIX/temp/$RAW.label_index.out)
+  if [[ "$LABEL_INDEX" == "" ]]; then LABEL_INDEX=0; fi
+
   LABEL="[$LABEL_INDEX]$RAW"
   LOGFILE=$(name_of $LABEL LOG)
 
@@ -48,7 +51,7 @@ function label_of {
   EEXIST=$(bash $PREFIX/file-exist.sh $LOGFILE)
   while [[ "$EEXIST" == true ]]; do
     ((LABEL_INDEX++))
-    echo "$LABEL_INDEX" > "$PREFIX/temp/label_index.out"
+    echo "$LABEL_INDEX" > "$PREFIX/temp/RAW.label_index.out"
     LABEL="[$LABEL_INDEX]$RAW"
     LOGFILE=$(name_of $LABEL LOG)
     EEXIST=$(bash $PREFIX/file-exist.sh $LOGFILE)

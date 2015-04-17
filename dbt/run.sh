@@ -25,7 +25,7 @@ NT=false
 AUTO=false
 declare -a DEFAULT_DBS=("mem" "mongo" "jsonfile" "redis" "postgres" "mysql")
 declare -a OBSOLETE_DBS=("cassandra")
-declare -a MALFUNC_DBS=("fedora")
+declare -a MALFUNC_DBS=("fedora" "orient")
 declare -a DBS=${DEFAULT_DBS[@]}
 POPULATING=false
 for VAR in "${ARGS[@]}"
@@ -87,6 +87,7 @@ do
     IMG_NAME=$DB
     if [[ "$IMG_NAME" == "cassandra" ]]; then IMG_NAME="spotify/cassandra"
     elif [[ "$IMG_NAME" == "couchdb" ]]; then IMG_NAME="fedora/couchdb"
+    elif [[ "$IMG_NAME" == "orient" ]]; then IMG_NAME="superna/orientdb"
     fi
     bash $PREFIX/util/image-check.sh $IMG_NAME $FD
 

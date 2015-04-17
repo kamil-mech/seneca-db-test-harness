@@ -30,8 +30,6 @@ export MYSQL_HOST=$DB_IP
 export MYSQL_TCP_PORT=$DB_PORT
 export MYSQL_PWD=$PASSWORD
 
-bash $PREFIX/../util/wait-connect.sh $DB_IP $DB_PORT
-
 echo ---
 echo INIT START
 mysql -u $USER -p$PASSWORD $NAME < $WORKDIR$SCHEMA

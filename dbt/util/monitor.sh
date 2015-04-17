@@ -30,7 +30,7 @@ function label_of {
     FCHAR="$(echo $ARG | head -c 1)"
     if [[ "$FCHAR" != "-" ]]; then TEMP+="$ARG "; fi
   done
-  RAW=$(echo $TEMP)
+  RAW=$(echo $TEMP | tr '/' '-')
 
   RAW=$(echo $RAW | rev)
   RAW=$(bash $PREFIX/split.sh "$RAW" " " 0)
@@ -70,12 +70,12 @@ function name_of {
     fi
     TYPE=$2_POSTFIX
     TYPE=$(echo "${!TYPE}")
-    FILE="$PATH/$NAME$TYPE"
+    FILE="$PATH/$NAME.$TYPE"
     echo $FILE
 }
-STREAM_POSTFIX=".stream.out"
-LOG_POSTFIX=".full.log"
-SCRIPT_POSTFIX=".script.sh"
+STREAM_POSTFIX="stream.out"
+LOG_POSTFIX="full.log"
+SCRIPT_POSTFIX="script.sh"
 
 # allow other scripts to request filename and label
 # this ensures naming is consistent across the entire system
@@ -108,7 +108,7 @@ while [[ true ]]; do
     RAW=$(echo $RAW | rev)
     RAW=$(bash $PREFIX/split.sh "$RAW" "." 0)
 
-    STREAM="$PREFIX/temp/$RAW$STREAM_POSTFIX"
+    STREAM="$PREFIX/temp/$RAW.$STREAM_POSTFIX"
     # peek
     EEXIST=$(bash $PREFIX/file-exist.sh $STREAM)
     if [[ "$EEXIST" == true ]]; then PEEK=$(bash $PREFIX/peek.sh $STREAM $LOG); fi
@@ -147,7 +147,7 @@ do
   RAW=$(bash $PREFIX/split.sh "$RAW" "." 0)
 
   # ensure logs are full and streamfiles are empty
-  STREAM="$PREFIX/temp/$RAW$STREAM_POSTFIX"
+  STREAM="$PREFIX/temp/$RAW.$STREAM_POSTFIX"
 
   EEXIST=$(bash $PREFIX/file-exist.sh $STREAM)
   if [[ "$EEXIST" = true ]]; then TEMP=$(bash $PREFIX/peek.sh $STREAM $LOG); fi
@@ -158,12 +158,12 @@ do
   LOG_DATA=$(cat $LOG)
   PEEK=$(bash $PREFIX/peek.sh $LOG "/dev/null")
   if [[ "$PEEK" == "ERR" ]]; then
-    FINAL_LOG="$FAIL_PATH/$RAW$LOG_POSTFIX"
+    FINAL_LOG="$FAIL_PATH/$RAW.$LOG_POSTFIX"
     > $FINAL_LOG
     echo "$LOG_DATA" > $FINAL_LOG
     FAILED=true
   else
-    FINAL_LOG="$SUCC_PATH/$RAW$LOG_POSTFIX"
+    FINAL_LOG="$SUCC_PATH/$RAW.$LOG_POSTFIX"
     > $FINAL_LOG
     echo "$LOG_DATA" > $FINAL_LOG
   fi

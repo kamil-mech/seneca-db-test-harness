@@ -82,6 +82,7 @@ else
   nohup gnome-terminal --title="$TITLE" --disable-factory -x bash -c "$COMMAND" >/dev/null 2>&1 &
 fi
 
+
 # spawn cooldown
 sleep 2
 
@@ -90,10 +91,11 @@ if [[ "$LABEL" != *"script"* ]]; then
   HEX=$(cat $PREFIX/temp/$LABEL.hex.out)
   HEX=${HEX:0:8}
   IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $HEX)
-  PORT=$(bash $PREFIX/docker-port.sh $HEX)
-  echo $LABEL DETAILS:
-  echo $LABEL DOCKER HEX "$HEX"
-  echo $LABEL ADDR "$IP:$PORT"
+  PORTS=$(bash $PREFIX/docker-port.sh $HEX)
+  echo "$LABEL DETAILS:"
+  echo "$LABEL DOCKER HEX $HEX"
+  echo "$LABEL ADDR $IP"
+  echo "@ PORTS: $PORTS"
   echo
 
   # detect errors
@@ -101,7 +103,7 @@ if [[ "$LABEL" != *"script"* ]]; then
 
   # if no errors
   # wait for image to be up & listening
-  if [[ "$PEEK" != "ERR" && "$PEEK" != "FIN" && "$PORT" != "" ]]; then
-    bash $PREFIX/wait-connect.sh $IP $PORT
+  if [[ "$PEEK" != "ERR" && "$PEEK" != "FIN" && "$PORTS" != "" ]]; then
+    bash $PREFIX/wait-connect.sh $IP $PORTS
   fi
 fi

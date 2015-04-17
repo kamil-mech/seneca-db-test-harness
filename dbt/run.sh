@@ -24,6 +24,7 @@ TA=false
 NT=false
 AUTO=false
 declare -a DEFAULT_DBS=("mem" "mongo" "jsonfile" "redis" "postgres" "mysql")
+declare -a OBSOLETE_DBS=("cassandra")
 declare -a DBS=${DEFAULT_DBS[@]}
 POPULATING=false
 for VAR in "${ARGS[@]}"
@@ -82,7 +83,9 @@ do
   echo PREPARING $DB DB FOR TEST
   if [[ "$LINKED" == true ]]; then 
     echo USING DOCKER DB IMAGE FOR $DB
-    bash $PREFIX/util/image-check.sh $DB $FD
+    IMG_NAME=$DB
+    if [[ "$IMG_NAME" == "cassandra" ]]; then IMG_NAME="spotify/cassandra"; fi
+    bash $PREFIX/util/image-check.sh $IMG_NAME $FD
 
     # run db
     echo RUN DB
@@ -107,7 +110,7 @@ do
         bash $PREFIX/util/wait-connect.sh $DB_IP $DB_PORT
       fi
     else      
-      bash $PREFIX/util/dockrunner.sh "$DB" "--rm --name $DB-inst $DB"
+      bash $PREFIX/util/dockrunner.sh "$DB" "--rm --name $DB-inst $IMG_NAME"
       
       # get db info
       DB_HEX=$(cat $PREFIX/util/temp/$(ls -a $PREFIX/util/temp | grep "$DB.hex.out"))

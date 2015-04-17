@@ -26,7 +26,6 @@ while [[ true ]]; do
     sleep 1
   else
     echo
-    echo VALUE IS $CONNECTED
     echo "SUCCESS @ $WINNER"
     break
   fi

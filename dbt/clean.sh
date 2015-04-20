@@ -97,6 +97,6 @@ if [[ "$LAST" == true ]]; then
   ALL=$(ls $PREFIX/util/log/)
   for VAR in ${ALL[@]}; do
     VAR="$PREFIX/util/log/$VAR"
-    if [[ "$VAR" != *"fail"* && "$VAR" != *"success"* ]]; then  rm -rf $VAR; fi
+    if [[ "$VAR" != *"fail"* && "$VAR" != *"success"* && "$VAR" != *"meta"* ]]; then  rm -rf $VAR; fi
   done
 fi

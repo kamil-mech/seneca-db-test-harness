@@ -11,16 +11,19 @@ if [[ "$MOREARGS" == "" ]]; then
     IFS=' ' read -ra ARGS <<< "$ARGS"
 fi
 
+EEXIST=$(bash $PREFIX/util/file-exist.sh $PREFIX/util/temp.conf.out)
+if [[ "$EEXIST" = false ]]; then node $PREFIX/util/conf.js $CFGFILE; fi
+
 PROMPT=false
 NER=false
 AER=false
-RCF=false
+LAST=false
 for VAR in "${ARGS[@]}"
 do
     if [[ "$VAR" = "-prompt" ]]; then PROMPT=true; fi
     if [[ "$VAR" = "-ner" ]]; then NER=true; fi
     if [[ "$VAR" = "-aer" ]]; then AER=true; fi
-    if [[ "$VAR" = "-rcf" ]]; then RCF=true; fi
+    if [[ "$VAR" = "-last" ]]; then LAST=true; fi
 done
 
 echo "ERASING TEMP"
@@ -47,6 +50,7 @@ if [[ "$NER" == false ]]; then
 
   WORKDIR=$(bash $PREFIX/util/conf-obtain.sh app workdir)
   CFILES=$(bash $PREFIX/util/conf-obtain.sh cleanups -a)
+
   CNO=$(bash $PREFIX/util/split.sh "$CFILES" "@" 0)
   if [[ "$CNO" != "" && "$CNO" > 0 ]]; then
     for (( I=1; I<=CNO; I++ ))
@@ -87,3 +91,12 @@ if [[ "$PROMPT" = true ]]; then
     read
 fi
 echo
+
+if [[ "$LAST" == true ]]; then
+  rm "$PREFIX/util/temp.conf.out"
+  ALL=$(ls $PREFIX/util/log/)
+  for VAR in ${ALL[@]}; do
+    VAR="$PREFIX/util/log/$VAR"
+    if [[ "$VAR" != *"fail"* && "$VAR" != *"success"* ]]; then  rm -rf $VAR; fi
+  done
+fi

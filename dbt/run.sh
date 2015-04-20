@@ -16,13 +16,16 @@ if [[ "$MOREARGS" == "" ]]; then
   IFS=' ' read -ra ARGS <<< "$ARGS"
 fi
 
+EEXIST=$(bash $PREFIX/util/file-exist.sh $CFGFILE)
+if [[ "$EEXIST" = false ]]; then echo "ERROR: NO CFG FILE"; exit 1; fi
+
 # read flags
 FD=false
 FB=false
 TU=false
 TA=false
 NT=false
-AUTO=false
+MAN=false
 declare -a DEFAULT_DBS=("mem" "mongo" "jsonfile" "redis" "postgres" "mysql")
 declare -a OBSOLETE_DBS=("cassandra")
 declare -a MALFUNC_DBS=("fedora" "orient")
@@ -38,9 +41,8 @@ do
   elif [[ "$VAR" == "-tu" ]]; then TU=true;
   elif [[ "$VAR" == "-ta" ]]; then TA=true;
   elif [[ "$VAR" == "-nt" ]]; then NT=true;
-  elif [[ "$VAR" == "-auto" ]]; then AUTO=true;
+  elif [[ "$VAR" == "-man" ]]; then MAN=true;
   # dbs can be directly specified, no constraints
-  # it is also safe to not make any dash prefix validations thanks to elif
   elif [[ "$VAR" == "-dbs" ]]; then POPULATING=true; declare -a DBS=()
   elif [[ "$POPULATING" == true ]]; then
     # calculating multiplicity
@@ -66,6 +68,8 @@ node $PREFIX/util/conf.js $CFGFILE
 
 # clean monitor data
 rm -rf $PREFIX/util/log/
+
+echo "--------------------------------"
 
 # main body that iterates over all dbs
 for DB in ${DBS[@]}
@@ -150,6 +154,7 @@ do
       IMG=$(bash $PREFIX/util/split.sh "$DIMG" "@" $I)
       EXTRAS=""
       if [[ "$LINKED" == true ]]; then EXTRAS="--link $DB-inst:$DB-link --env db=$DB-store"; fi
+      if [[ "$DB" == "rethinkdb" ]]; then DB="rethink"; fi
       EXTRAS+=" --env db=$DB-store"
       IMG="$EXTRAS $IMG"
 
@@ -159,6 +164,7 @@ do
     echo NO NEED TO RUN THE APP FOR UNIT TEST
   fi
 
+  if [[ "$DB" == "rethinkdb" ]]; then DB="rethink"; fi
   #  run test
   if [[ "$NT" == false ]]; then
     echo
@@ -166,11 +172,10 @@ do
     bash $PREFIX/util/dockrunner.sh "$DB" "; bash $PREFIX/util/test.sh $DB $TU $TA $DB_IP $DB_PORT"
   fi
 
-  if [[ "$AUTO" == true ]]; then
+  if [[ "$MAN" == false ]]; then
     # monitor for errors
     bash $PREFIX/util/monitor.sh "$DB"
-    bash $PREFIX/clean.sh "${ARGS[@]}"
-    echo
+    bash $PREFIX/clean.sh "${ARGS[@]}" -last
   else
     # prepare for next
     echo
@@ -178,11 +183,9 @@ do
     echo "STOP ALL AND CLEAN BEFORE NEXT"
     read
     echo
-    bash $PREFIX/clean.sh "${ARGS[@]}" -prompt
-    echo
+    bash $PREFIX/clean.sh "${ARGS[@]}" -last -prompt
   fi
 
-
+  echo "--------------------------------"
+  echo
 done
-# erasing temp files
-TEMP=$(bash $PREFIX/util/read-inspect.sh conf)

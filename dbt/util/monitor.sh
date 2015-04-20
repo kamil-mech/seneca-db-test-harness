@@ -173,8 +173,6 @@ done
 # place db log folder in success or fail respectively
 if [[ "$FAILED" == false ]]; then
   mv "$PREFIX/log/$DB/success"/* "$PREFIX/log/$DB/"
-  rm -rf "$PREFIX/log/$DB/success"
-  rm -rf "$PREFIX/log/$DB/fail"
   TARGET="$PREFIX/log/success/$DB/"
 else
   TARGET="$PREFIX/log/fail/$DB/"
@@ -183,9 +181,5 @@ EEXIST=$(bash $PREFIX/file-exist.sh $TARGET)
 if [[ "$EEXIST" = false ]]; then mkdir "$TARGET"; fi
 
 mv "$PREFIX/log/$DB"/* "$TARGET"
-
-# final cleanup
-rm -rf "$PREFIX/log/$DB"
-bash $PREFIX/../clean.sh null -ner # TODO remove -ner, put args instead
 
 echo "MONITORS DOWN"

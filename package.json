@@ -3,6 +3,9 @@
   "version": "0.2.1",
   "description": "Automates the process of testing various DBs against seneca applications",
   "main": "seneca-db-test-harness.js",
+  "scripts": {
+      "test": "bash ./init.sh"
+    },
   "repository": {
     "type": "git",
     "url": "git://github.com/kamil-mech/seneca-db-test-harness.git"

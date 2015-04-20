@@ -93,7 +93,7 @@ dbs supported:
 | -tu   | unit test only                                                 |    run     |
 | -ta   | acceptance test only                                           |    run     |
 | -nt   | no test, just run everything                                   |    run     |
-| -auto | run through all without manual control and produce log report  |    run     |
+| -man  | manual control and no log report                               |    run     |
 | -ner  | never erase custom temp files on cleanup                       | run, clean |
 | -aer  | always erase custom temp files on cleanup                      | run, clean |
 

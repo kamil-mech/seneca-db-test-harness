@@ -1,5 +1,6 @@
 #!/bin/bash
 trap 'kill $$' SIGINT
+
 echo -ne "\033]0;DBT Manager\007" # sets title
 
 # get dbt workdir path
@@ -69,11 +70,17 @@ node $PREFIX/util/conf.js $CFGFILE
 # clean monitor data
 rm -rf $PREFIX/util/log/
 
-echo "--------------------------------"
+TOTAL_RUNS=${#DBS[@]}
+CURRENT_RUN=0
 
+echo "--------------------------------"
 # main body that iterates over all dbs
 for DB in ${DBS[@]}
 do
+  # feed progress on title bar
+  ((CURRENT_RUN++))
+  echo -ne "\033]0;DBT Manager ($CURRENT_RUN/$TOTAL_RUNS)\007" # sets title
+
   bash $PREFIX/clean.sh "${ARGS[@]}"
 
   # determine whether linked to db
@@ -185,10 +192,12 @@ do
     echo
     bash $PREFIX/clean.sh "${ARGS[@]}" -last -prompt
   fi
-
-  SUMMARY=$(bash $PREFIX/util/summarize.sh)
-  echo "--------------------------------"
-  echo "$SUMMARY" > $PREFIX/util/log/README.md
-  echo "$SUMMARY"
-  echo
 done
+
+echo -ne "\033]0;DBT Manager\007" # sets title
+
+SUMMARY=$(bash $PREFIX/util/summarize.sh)
+echo "--------------------------------"
+echo "$SUMMARY" > $PREFIX/util/log/README.md
+echo "$SUMMARY"
+echo

@@ -70,6 +70,7 @@ node $PREFIX/util/conf.js $CFGFILE
 # clean monitor data
 rm -rf $PREFIX/util/log/
 
+IFS=" " read -ra DBS <<< "${DBS[@]}"
 TOTAL_RUNS=${#DBS[@]}
 CURRENT_RUN=0
 
@@ -107,7 +108,7 @@ do
     if [[ "$DB" == "postgres" || "$DB" == "mysql" ]]; then
       nohup gnome-terminal --disable-factory -x bash -c "bash $PREFIX/dbs/$DB-init.sh" >/dev/null 2>&1 &
 
-      sleep 1
+      sleep 2
 
       # get db info
       DB_HEX=$(cat $PREFIX/util/temp/$(ls -a $PREFIX/util/temp | grep "$DB.hex.out"))

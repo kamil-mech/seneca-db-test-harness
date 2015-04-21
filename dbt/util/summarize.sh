@@ -86,7 +86,6 @@ for NAME in ${NAMES[@]}; do
   TOTAL=$((SUCCESS + FAIL))
   PERCENT=$(printf '%i %i' $SUCCESS $TOTAL | awk '{ pc=100*$1/$2; i=int(pc); print (pc-i<0.5)?i:i+1 }')
 
-
   function fix_indentation {
     STR=$1
     LENGTH=$2

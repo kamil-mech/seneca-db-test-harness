@@ -104,6 +104,7 @@ if [[ "$LABEL" != *"script"* ]]; then
   # if no errors
   # wait for image to be up & listening
   if [[ "$PEEK" != "ERR" && "$PEEK" != "FIN" && "$PORTS" != "" ]]; then
-    bash $PREFIX/wait-connect.sh $IP $PORTS
+    bash $PREFIX/wait-connect.sh 2 $IP $PORTS
+    PEEK=$(bash $PREFIX/peek.sh $STREAMFILE $LOGFILE true)
   fi
 fi

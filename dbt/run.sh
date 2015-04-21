@@ -68,7 +68,8 @@ declare -a IGNORED=()
 node $PREFIX/util/conf.js $CFGFILE
 
 # clean monitor data
-rm -rf $PREFIX/util/log/
+rm -rf "$PREFIX/util/log/"
+rm -rf "$PREFIX/../log/"
 
 IFS=" " read -ra DBS <<< "${DBS[@]}"
 TOTAL_RUNS=${#DBS[@]}
@@ -115,16 +116,6 @@ do
       DB_HEX=${DB_HEX:0:8}
       DB_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $DB_HEX)
       DB_PORT=$(bash $PREFIX/util/docker-port.sh $DB_HEX)
-
-      # detect errors
-      STREAMFILE="$PREFIX/util/temp/"$(ls -a $PREFIX/util/temp | grep "$DB.stream.out") # TODO this needs to be replaced
-      PEEK=$(bash $PREFIX/util/peek.sh $STREAMFILE null true)
-
-      # if no errors
-      # wait for image to be up & listening
-      if [[ "$PEEK" != "ERR" && "$PEEK" != "FIN" && "$DB_PORT" != "" ]]; then
-        bash $PREFIX/util/wait-connect.sh $DB_IP $DB_PORT
-      fi
     else      
       bash $PREFIX/util/dockrunner.sh "$DB" "--rm --name $DB-inst $IMG_NAME"
       
@@ -202,3 +193,8 @@ echo "--------------------------------"
 echo "$SUMMARY" > $PREFIX/util/log/README.md
 echo "$SUMMARY"
 echo
+
+# copy log folder to where it calls the script
+bash $PREFIX/util/ensure.sh "$PREFIX/../log/"
+mv "$PREFIX/util/log"/* "$PREFIX/../log" 
+rm -rf "$PREFIX/util/log"

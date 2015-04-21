@@ -1,13 +1,12 @@
 #!/bin/bash
 trap 'kill $$' SIGINT
 
-IP=$1
+declare -i TIMEOUT=$1
+declare -i TICKS_PASSED=0
+IP=$2
 IFS=" " read -ra PORTS <<< "$@"   # from args to array
-PORTS=${PORTS:${#PORTS[0]}}       # remove first arg
+PORTS=${PORTS:${#PORTS[1]}}       # remove first 2 args
 IGNORED_PORTS=("7199" "7000")
-
-# declare -i TIMEOUT=$3
-# declare -i TICKS_PASSED=0
 
 echo
 echo "CONNECTING TO $IP"
@@ -30,15 +29,11 @@ while [[ true ]]; do
     break
   fi
 
-  # if [[ "$TIMEOUT" != "0" ]]; then
-  #   echo TICK
-  #   echo $TICKS_PASSED
-  #   ((TICKS_PASSED++))
-  #   echo $TICKS_PASSED
-  #   if [[ $TICKS_PASSED -gt $TIMEOUT ]]; then
-  #     echo TIMEOUT
-  #     break
-  #   fi
-  # fi
+  if [[ "$TIMEOUT" != "0" ]]; then
+    ((TICKS_PASSED++))
+    if [[ $TICKS_PASSED -ge $TIMEOUT ]]; then
+      break
+    fi
+  fi
 done
 echo

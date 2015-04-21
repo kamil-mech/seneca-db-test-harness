@@ -186,6 +186,9 @@ do
     bash $PREFIX/clean.sh "${ARGS[@]}" -last -prompt
   fi
 
+  SUMMARY=$(bash $PREFIX/util/summarize.sh)
   echo "--------------------------------"
+  echo "$SUMMARY" > $PREFIX/util/log/README.md
+  echo "$SUMMARY"
   echo
 done

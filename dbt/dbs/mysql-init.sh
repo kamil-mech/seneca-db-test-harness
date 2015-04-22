@@ -24,10 +24,10 @@ trap 'trap - EXIT; echo; echo DONE; echo MONITOR-FIN >> $STREAMFILE; read;' EXIT
 DB_HEX=$(cat $PREFIX/../util/temp/$(ls -a $PREFIX/../util/temp | grep "$DB.hex.out"))
 DB_HEX=${DB_HEX:0:8}
 DB_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $DB_HEX)
-DB_PORT=$(bash $PREFIX/../util/docker-port.sh $DB_HEX)
+DB_PORTS=$(bash $PREFIX/../util/docker-port.sh $DB_HEX)
 
 export MYSQL_HOST=$DB_IP
-export MYSQL_TCP_PORT=$DB_PORT
+export MYSQL_TCP_PORT=$DB_PORTS
 export MYSQL_PWD=$PASSWORD
 
 echo ---

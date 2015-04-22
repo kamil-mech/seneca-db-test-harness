@@ -82,7 +82,6 @@ else
   nohup gnome-terminal --title="$TITLE" --disable-factory -x bash -c "$COMMAND" >/dev/null 2>&1 &
 fi
 
-
 # spawn cooldown
 sleep 2
 
@@ -98,13 +97,6 @@ if [[ "$LABEL" != *"script"* ]]; then
   echo "@ PORTS: $PORTS"
   echo
 
-  # detect errors
-  PEEK=$(bash $PREFIX/peek.sh $STREAMFILE $LOGFILE true)
-
-  # if no errors
   # wait for image to be up & listening
-  if [[ "$PEEK" != "ERR" && "$PEEK" != "FIN" && "$PORTS" != "" ]]; then
-    bash $PREFIX/wait-connect.sh 2 $IP $PORTS
-    PEEK=$(bash $PREFIX/peek.sh $STREAMFILE $LOGFILE true)
-  fi
+  bash $PREFIX/examine-connection.sh $STREAMFILE $IP $PORTS
 fi

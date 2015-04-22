@@ -3,14 +3,23 @@ trap 'kill $$' SIGINT
 
 declare -i TIMEOUT=$1
 declare -i TICKS_PASSED=0
-IP=$2
-IFS=" " read -ra PORTS <<< "$@"   # from args to array
-PORTS=${PORTS:${#PORTS[1]}}       # remove first 2 args
+NO_HEAD=$2
+IP=$3
+
+IFS=" " read -ra ARGS <<< "$@"   # from args to array
+PORTS=$(echo ${ARGS[@]})         # back to string
+PORTS=${PORTS:${#ARGS[0]}+1}     # remove #1 arg
+PORTS=${PORTS:${#ARGS[1]}+1}     # remove #2 arg
+PORTS=${PORTS:${#ARGS[2]}+1}     # remove #3 arg
+
 IGNORED_PORTS=("7199" "7000")
 
-echo
-echo "CONNECTING TO $IP"
-echo "@ PORTS: ${PORTS[@]}"
+if [[ "$NO_HEAD" != true ]]; then
+  echo
+  echo "CONNECTING TO $IP"
+  echo "@ PORTS: ${PORTS[@]}"
+fi
+
 while [[ true ]]; do
   WINNER=""
   for PORT in ${PORTS[@]}; do
@@ -26,6 +35,7 @@ while [[ true ]]; do
   else
     echo
     echo "SUCCESS @ $WINNER"
+    echo
     break
   fi
 
@@ -36,4 +46,3 @@ while [[ true ]]; do
     fi
   fi
 done
-echo

@@ -115,7 +115,11 @@ do
       DB_HEX=$(cat $PREFIX/util/temp/$(ls -a $PREFIX/util/temp | grep "$DB.hex.out"))
       DB_HEX=${DB_HEX:0:8}
       DB_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $DB_HEX)
-      DB_PORT=$(bash $PREFIX/util/docker-port.sh $DB_HEX)
+      DB_PORTS=$(bash $PREFIX/util/docker-port.sh $DB_HEX)
+
+      # wait for image to be up & listening
+      STREAMFILE="$PREFIX/util/temp/"$(ls -a $PREFIX/util/temp | grep "$DB.stream.out") # TODO this needs to be replaced
+      bash $PREFIX/util/examine-connection.sh $STREAMFILE $DB_IP $DB_PORTS
     else      
       bash $PREFIX/util/dockrunner.sh "$DB" "--rm --name $DB-inst $IMG_NAME"
       
@@ -123,7 +127,7 @@ do
       DB_HEX=$(cat $PREFIX/util/temp/$(ls -a $PREFIX/util/temp | grep "$DB.hex.out"))
       DB_HEX=${DB_HEX:0:8}
       DB_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $DB_HEX)
-      DB_PORT=$(bash $PREFIX/util/docker-port.sh $DB_HEX)
+      DB_PORTS=$(bash $PREFIX/util/docker-port.sh $DB_HEX)
     fi
 
   else
@@ -168,7 +172,7 @@ do
   if [[ "$NT" == false ]]; then
     echo
     echo TEST $DB DB
-    bash $PREFIX/util/dockrunner.sh "$DB" "; bash $PREFIX/util/test.sh $DB $TU $TA $DB_IP $DB_PORT"
+    bash $PREFIX/util/dockrunner.sh "$DB" "; bash $PREFIX/util/test.sh $DB $TU $TA $DB_IP $DB_PORTS"
   fi
 
   if [[ "$MAN" == false ]]; then

@@ -1,6 +1,7 @@
 #!/bin/bash
-trap 'kill $$' SIGINT
-PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
 
 STREAMFILE=$1
 LOGFILE=$2

@@ -1,6 +1,7 @@
 #!/bin/bash
-trap 'kill $$' SIGINT
-PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
 
 declare -a NAMES=()
 declare -A SCORES
@@ -9,7 +10,7 @@ declare -A SCORES
 # KEY="$NAME""_FAIL"
 # SCORES[$KEY]=0
 # echo HERE1: ${SCORES[$KEY]}
-# ((SCORES[$KEY]++))
+# ((SCORES[$KEY]+=1))
 # echo HERE2: ${SCORES[$KEY]}
 
 LOG_FOLDER="$PREFIX/log"
@@ -41,7 +42,7 @@ for CASE in ${CASES[@]}; do
     fi
 
     # increment value
-    ((SCORES[$KEY]++))
+    ((SCORES[$KEY]+=1))
   done
 done
 

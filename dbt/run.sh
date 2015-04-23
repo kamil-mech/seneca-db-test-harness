@@ -1,12 +1,10 @@
 #!/bin/bash
-trap 'kill $$' SIGINT
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX/util" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
+trap '' ERR # disable tools.error
 
 echo -ne "\033]0;DBT Manager\007" # sets title
-
-# get dbt workdir path
-PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-echo
-echo WORKDIR $PREFIX
 
 ARGS=$@
 IFS=' ' read -ra ARGS <<< "$ARGS"
@@ -17,8 +15,8 @@ if [[ "$MOREARGS" == "" ]]; then
   IFS=' ' read -ra ARGS <<< "$ARGS"
 fi
 
-EEXIST=$(bash $PREFIX/util/file-exist.sh $CFGFILE)
-if [[ "$EEXIST" = false ]]; then echo "ERROR: NO CFG FILE"; exit 1; fi
+EEXIST=$(call "file-exist.sh" "$CFGFILE")
+if [[ "$EEXIST" == false ]]; then error "NO CFG FILE"; fi
 
 # read flags
 FD=false
@@ -32,8 +30,7 @@ declare -a OBSOLETE_DBS=("cassandra")
 declare -a MALFUNC_DBS=("fedora" "orient")
 declare -a DBS=${DEFAULT_DBS[@]}
 POPULATING=false
-for VAR in "${ARGS[@]}"
-do
+for VAR in "${ARGS[@]}"; do
   FCHAR="$(echo $VAR | head -c 1)"
   if [[ "$FCHAR" == "-" ]]; then POPULATING=false; fi
   
@@ -65,10 +62,10 @@ declare -a LINKLESS=("mem" "jsonfile")
 declare -a IGNORED=()
 
 # generate conf
-node $PREFIX/util/conf.js $CFGFILE
+node "$UTIL/conf.js" "$CFGFILE"
 
 # clean monitor data
-rm -rf "$PREFIX/util/log/"
+rm -rf "$UTIL/log/"
 rm -rf "$PREFIX/../log/"
 
 IFS=" " read -ra DBS <<< "${DBS[@]}"
@@ -80,10 +77,10 @@ echo "--------------------------------"
 for DB in ${DBS[@]}
 do
   # feed progress on title bar
-  ((CURRENT_RUN++))
+  ((CURRENT_RUN+=1))
   echo -ne "\033]0;DBT Manager ($CURRENT_RUN/$TOTAL_RUNS)\007" # sets title
 
-  bash $PREFIX/clean.sh "${ARGS[@]}"
+  call "clean.sh" "${ARGS[@]}"
 
   # determine whether linked to db
   LINKED=true
@@ -94,91 +91,84 @@ do
 
   # ensuring docker image and running it
   echo 
-  echo PREPARING $DB DB FOR TEST
+  echo "PREPARING $DB DB FOR TEST"
   if [[ "$LINKED" == true ]]; then 
-    echo USING DOCKER DB IMAGE FOR $DB
+    echo "USING DOCKER DB IMAGE FOR $DB"
     IMG_NAME=$DB
     if [[ "$IMG_NAME" == "cassandra" ]]; then IMG_NAME="spotify/cassandra"
     elif [[ "$IMG_NAME" == "couchdb" ]]; then IMG_NAME="fedora/couchdb"
     elif [[ "$IMG_NAME" == "orient" ]]; then IMG_NAME="superna/orientdb"
     fi
-    bash $PREFIX/util/image-check.sh $IMG_NAME $FD
+    call "image-check.sh" "$IMG_NAME" "$FD"
 
     # run db
-    echo RUN DB
+    echo "RUN DB"
     if [[ "$DB" == "postgres" || "$DB" == "mysql" ]]; then
       nohup gnome-terminal --disable-factory -x bash -c "bash $PREFIX/dbs/$DB-init.sh" >/dev/null 2>&1 &
 
       sleep 2
 
-      # get db info
-      DB_HEX=$(cat $PREFIX/util/temp/$(ls -a $PREFIX/util/temp | grep "$DB.hex.out"))
-      DB_HEX=${DB_HEX:0:8}
-      DB_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $DB_HEX)
-      DB_PORTS=$(bash $PREFIX/util/docker-port.sh $DB_HEX)
+      # loads DB_IP, DB_PORTS, DB_HEX and STREAMFILE vars
+      source $UTIL/load-db-info.sh
 
       # wait for image to be up & listening
-      STREAMFILE="$PREFIX/util/temp/"$(ls -a $PREFIX/util/temp | grep "$DB.stream.out") # TODO this needs to be replaced
-      bash $PREFIX/util/examine-connection.sh $STREAMFILE $DB_IP $DB_PORTS
+      call "examine-connection.sh" "$STREAMFILE" "$DB_IP" "$DB_PORTS"
     else      
-      bash $PREFIX/util/dockrunner.sh "$DB" "--rm --name $DB-inst $IMG_NAME"
+      call "dockrunner.sh" "$DB" "--rm --name $DB-inst $IMG_NAME"
       
-      # get db info
-      DB_HEX=$(cat $PREFIX/util/temp/$(ls -a $PREFIX/util/temp | grep "$DB.hex.out"))
-      DB_HEX=${DB_HEX:0:8}
-      DB_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $DB_HEX)
-      DB_PORTS=$(bash $PREFIX/util/docker-port.sh $DB_HEX)
+      # loads DB_IP, DB_PORTS, DB_HEX and STREAMFILE vars
+      source $UTIL/load-db-info.sh
     fi
 
   else
-    echo USING SENECA DB TEST HARNESS FOR $DB
+    echo "USING SENECA-STORE_LISTEN FOR $DB"
   fi
 
   # running app, rebuild is optional
   if [[ "$TU" == false ]]; then
     IMAGES=$(docker images | grep well-app)
     if [[ "$FB" == true || "$IMAGES" == "" ]]; then
-      echo REBUILD THE APP
-      bash $PREFIX/util/docker-build.sh
+      echo "REBUILD THE APP"
+      call "docker-build.sh"
       FB=false
     else
-      echo NO NEED TO REBUILD THE APP
+      echo "NO NEED TO REBUILD THE APP"
     fi
 
     # run app
-    echo RUN APP
-    DIMG=$(bash $PREFIX/util/conf-obtain.sh dockimages -a)
-    IMGNO=$(bash $PREFIX/util/split.sh "$DIMG" "@" 0)
+    echo "RUN APP"
+    DIMG=$(call "conf-obtain.sh" "dockimages" "-a")
+    IMGNO=$(call "split.sh" "$DIMG" "@" "0")
 
-    for (( I=1; I<=IMGNO; I++ ))
+    for (( I=1; I<=IMGNO; I+=1 ))
     do
       sleep 0.1
 
-      IMG=$(bash $PREFIX/util/split.sh "$DIMG" "@" $I)
+      IMG=$(call "split.sh" "$DIMG" "@" "$I")
       EXTRAS=""
       if [[ "$LINKED" == true ]]; then EXTRAS="--link $DB-inst:$DB-link --env db=$DB-store"; fi
       if [[ "$DB" == "rethinkdb" ]]; then DB="rethink"; fi
       EXTRAS+=" --env db=$DB-store"
       IMG="$EXTRAS $IMG"
 
-      bash $PREFIX/util/dockrunner.sh "$DB" "$IMG"
+      call "dockrunner.sh" "$DB" "$IMG"
     done
   else
-    echo NO NEED TO RUN THE APP FOR UNIT TEST
+    echo "NO NEED TO RUN THE APP FOR UNIT TEST"
   fi
 
   if [[ "$DB" == "rethinkdb" ]]; then DB="rethink"; fi
   #  run test
   if [[ "$NT" == false ]]; then
     echo
-    echo TEST $DB DB
-    bash $PREFIX/util/dockrunner.sh "$DB" "; bash $PREFIX/util/test.sh $DB $TU $TA $DB_IP $DB_PORTS"
+    echo "TEST $DB DB"
+    call "/dockrunner.sh" "$DB" "; bash $UTIL/test.sh $DB $TU $TA $DB_IP $DB_PORTS"
   fi
 
   if [[ "$MAN" == false ]]; then
     # monitor for errors
-    bash $PREFIX/util/monitor.sh "$DB"
-    bash $PREFIX/clean.sh "${ARGS[@]}" -last
+    call "monitor.sh" "$DB"
+    call "clean.sh" "${ARGS[@]} -last"
   else
     # prepare for next
     echo
@@ -186,19 +176,19 @@ do
     echo "STOP ALL AND CLEAN BEFORE NEXT"
     read
     echo
-    bash $PREFIX/clean.sh "${ARGS[@]}" -last -prompt
+    call "clean.sh" "${ARGS[@]} -last -prompt"
   fi
 done
 
 echo -ne "\033]0;DBT Manager\007" # sets title
 
-SUMMARY=$(bash $PREFIX/util/summarize.sh)
+SUMMARY=$(call "summarize.sh")
 echo "--------------------------------"
-echo "$SUMMARY" > $PREFIX/util/log/README.md
+echo "$SUMMARY" > $UTIL/log/README.md
 echo "$SUMMARY"
 echo
 
 # copy log folder to where it calls the script
-bash $PREFIX/util/ensure.sh "$PREFIX/../log/"
-mv "$PREFIX/util/log"/* "$PREFIX/../log" 
-rm -rf "$PREFIX/util/log"
+call "ensure.sh" "$PREFIX/../log/"
+mv "$UTIL/log"/* "$PREFIX/../log" 
+rm -rf "$UTIL/log"

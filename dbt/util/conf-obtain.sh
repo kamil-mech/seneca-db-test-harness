@@ -1,7 +1,7 @@
 #!/bin/bash
-trap 'kill $$' SIGINT
-
-PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
 
 DB=$1
 QUERY=$2
@@ -10,15 +10,15 @@ if [[ "$QUERY" == "-a" ]]; then
   OUTPUTLINES=0
 fi
 
-EEXIST=$(bash $PREFIX/file-exist.sh $CFGFILE)
+EEXIST=$(call "file-exist.sh" "$CFGFILE")
 if [[ "$EEXIST" = false ]]; then node $PREFIX/conf.js $CFGFILE; fi
 
-FILE=$(bash $PREFIX/read-inspect.sh -nk conf)
+FILE=$(call "read-inspect.sh" "-nk" "conf")
 
 # these conditions are a mess. need to clean them up
 for ENTRY in ${FILE[@]}
 do
-  if [[ "$ENTRY" == *"@"* && "$INSIDE" = true ]]; then ((OUTPUTLINES++)); fi
+  if [[ "$ENTRY" == *"@"* && "$INSIDE" = true ]]; then ((OUTPUTLINES+=1)); fi
   if [[ "$ENTRY" == "!" && "$INSIDE" = true ]]; then
     echo "$OUTPUTLINES $OUTPUT"
     break

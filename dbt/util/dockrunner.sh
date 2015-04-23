@@ -1,6 +1,7 @@
 #!/bin/bash
-trap 'kill $$' SIGINT
-PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
 
 #
 # dockrunner supports monitoring and after-scripts
@@ -13,25 +14,25 @@ DB=${IMG[0]}                  # obtain DB
 IMG=${IMG:${#IMG[0]}}         # remove first arg
 IMG=$(echo ${IMG[@]})         # back to string
 
-LABEL=$(bash $PREFIX/monitor.sh $DB LABEL $IMG)
+LABEL=$(call "monitor.sh" "$DB" "LABEL" "$IMG")
 if [[ "$LABEL" == *"$DB"* ]]; then echo "BOOTING $LABEL"
 else echo "BOOTING $LABEL WITH $DB DB"
 fi
 
 # init monitoring
-LOGFILE=$(bash $PREFIX/monitor.sh $DB NAME $LABEL LOG)
+LOGFILE=$(call "monitor.sh" "$DB" "NAME" "$LABEL" "LOG")
 > "$LOGFILE" # creates empty or empties path/file
-STREAMFILE=$(bash $PREFIX/monitor.sh $DB NAME $LABEL STREAM)
+STREAMFILE=$(call "monitor.sh" "$DB" "NAME" "$LABEL" "STREAM")
 > "$STREAMFILE"
-SCRIPT_FILE=$(bash $PREFIX/monitor.sh $DB NAME $LABEL SCRIPT)
+SCRIPT_FILE=$(call "monitor.sh" "$DB" "NAME" "$LABEL" "SCRIPT")
 > "$SCRIPT_FILE"
 
 # separate scripts and docker
-declare -a RAWIMG=$(bash $PREFIX/split.sh "$IMG" ";" 0) # contains flags and args
+declare -a RAWIMG=$(call "split.sh" "$IMG" ";" "0") # contains flags and args
 # docker generates file containing hex id of container when --cidfile is specified
 if [[ "$RAWIMG" != "" ]]; then
   IMG="--cidfile='$PREFIX/temp/$LABEL.hex.out' $IMG"
-  declare -a RAWIMG=$(bash $PREFIX/split.sh "$IMG" ";" 0) # update
+  declare -a RAWIMG=$(call "split.sh" "$IMG" ";" "0") # update
 fi
 
 FULL_LENGTH=${#IMG}
@@ -43,11 +44,6 @@ echo "echo $SCRIPTS" >> "$SCRIPT_FILE"
 # determine terminal title
 if [[ "$SCRIPTS" == *"test"* ]]; then
   TITLE="Test"
-
-  # fixes label, but needs to be compatible with monitor
-  # CLASSIFICATION=$(bash $PREFIX/split.sh "$LABEL" "]" 1)
-  # ID=$(bash $PREFIX/split.sh "$LABEL" "$CLASSIFICATION" 0)
-  # if [[ "$CLASSIFICATION" == "script" ]]; then LABEL="$ID""test"; fi
 elif [[ "$RAWIMG" == *"--env"* ]]; then
   declare -a LINKLESS=("mem" "jsonfile")
   LINKED=true
@@ -82,15 +78,21 @@ else
   nohup gnome-terminal --title="$TITLE" --disable-factory -x bash -c "$COMMAND" >/dev/null 2>&1 &
 fi
 
-# spawn cooldown
-sleep 2
-
 # get container info
+I=0
 if [[ "$LABEL" != *"script"* ]]; then
-  HEX=$(cat $PREFIX/temp/$LABEL.hex.out)
-  HEX=${HEX:0:8}
-  IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $HEX)
-  PORTS=$(bash $PREFIX/docker-port.sh $HEX)
+  while [[ true ]]; do
+    ((I+=1))
+
+    EEXIST=$(call "file-exist.sh" "$PREFIX/temp/$LABEL.hex.out")
+    if [[ "$EEXIST" == true ]]; then HEX=$(cat $PREFIX/temp/$LABEL.hex.out); fi
+    HEX=${HEX:0:8}
+    if [[ "$HEX" != "" || "$I" > 3 ]]; then break; fi
+    sleep 1
+  done
+
+  IP=$(call "docker-inspect.sh" "IP" "$HEX")
+  PORTS=$(call "docker-inspect.sh PORTS" "$HEX")
   echo "$LABEL DETAILS:"
   echo "$LABEL DOCKER HEX $HEX"
   echo "$LABEL ADDR $IP"
@@ -98,5 +100,5 @@ if [[ "$LABEL" != *"script"* ]]; then
   echo
 
   # wait for image to be up & listening
-  bash $PREFIX/examine-connection.sh $STREAMFILE $IP $PORTS
+  call "examine-connection.sh" "$STREAMFILE" "$IP" "$PORTS"
 fi

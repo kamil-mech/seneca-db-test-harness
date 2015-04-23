@@ -1,5 +1,7 @@
 #!/bin/bash
-trap 'kill $$' SIGINT
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
 
 declare -i TIMEOUT=$1
 declare -i TICKS_PASSED=0
@@ -24,8 +26,10 @@ while [[ true ]]; do
   WINNER=""
   for PORT in ${PORTS[@]}; do
     if [[ "${IGNORED_PORTS[@]}" == *"$PORT"* ]]; then continue; fi
+    trap '' ERR # disable tools.error to keep nc quiet
     CONNECTED=$(nc -z -v -w 1 $IP $PORT 2>&1)
     CONNECTED=$(echo $CONNECTED | grep "succ")
+    source $UTIL/tools.sh # reenable tools.error
     if [[ "$CONNECTED" != "" ]]; then WINNER=$PORT; break; fi
   done
 
@@ -40,7 +44,7 @@ while [[ true ]]; do
   fi
 
   if [[ "$TIMEOUT" != "0" ]]; then
-    ((TICKS_PASSED++))
+    ((TICKS_PASSED+=1))
     if [[ $TICKS_PASSED -ge $TIMEOUT ]]; then
       break
     fi

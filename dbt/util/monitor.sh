@@ -1,6 +1,7 @@
 #!/bin/bash
-trap 'kill $$' SIGINT
-PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
 
 DB=$1
 
@@ -31,7 +32,7 @@ function id_of {
   if [[ "$2" == "DB" ]]; then META_FILE="$PREFIX/log/meta/$RAW.label_index.out"; fi
 
   # ensure required temp file
-  bash $PREFIX/ensure.sh $META_FILE
+  call "ensure.sh" "$META_FILE"
 
   # read current value
   LABEL_INDEX=$(cat $META_FILE)
@@ -43,13 +44,13 @@ function id_of {
   fi
 
   # ensure entity names don't overlap
-  EEXIST=$(bash $PREFIX/file-exist.sh $LOGFILE)
+  EEXIST=$(call "file-exist.sh" "$LOGFILE")
   while [[ "$EEXIST" == true ]]; do
-    ((LABEL_INDEX++))
+    ((LABEL_INDEX+=1))
     echo "$LABEL_INDEX" > "$META_FILE"
     LABEL="[$LABEL_INDEX]$RAW"
     LOGFILE=$(name_of $LABEL LOG)
-    EEXIST=$(bash $PREFIX/file-exist.sh $LOGFILE)
+    EEXIST=$(call "file-exist.sh" "$LOGFILE")
   done
 
   echo "$LABEL_INDEX"  
@@ -63,7 +64,7 @@ function label_of {
   NAME=$(echo ${NAME[@]})        # back to string
 
   # get docker half only
-  RAW=$(bash $PREFIX/split.sh "$NAME" ";" 0)
+  RAW=$(call "split.sh" "$NAME" ";" "0")
 
   TEMP=""
   for ARG in $RAW; do
@@ -74,7 +75,7 @@ function label_of {
   RAW=$(echo $TEMP | tr '/' '-')
 
   RAW=$(echo $RAW | rev)
-  RAW=$(bash $PREFIX/split.sh "$RAW" " " 0)
+  RAW=$(call "split.sh" "$RAW" " " "0")
   RAW=$(echo $RAW | rev)
   if [[ "$RAW" == "LABEL" ]]; then RAW="script"; fi
 
@@ -85,8 +86,8 @@ function label_of {
   echo $LABEL
 }
 
-bash $PREFIX/ensure.sh "$PREFIX/log/"
-bash $PREFIX/ensure.sh "$PREFIX/temp/"
+call "ensure.sh" "$PREFIX/log/"
+call "ensure.sh" "$PREFIX/temp/"
 
 DB_LABEL_INDEX=$(id_of "$DB-db" DB)
 DB_LABEL="[$DB_LABEL_INDEX]$DB-db"
@@ -97,7 +98,7 @@ declare -a FOLDERS=("$PREFIX/log/success" "$PREFIX/log/fail"
                     "$PREFIX/log/$DB_LABEL/fail")
 for FOLDER in ${FOLDERS[@]}
 do
-  bash $PREFIX/ensure.sh "$FOLDER"
+  call "ensure.sh" "$FOLDER"
 done
 
 # allow other scripts to request filename and label
@@ -112,7 +113,7 @@ fi
 
 # main body
 echo "MONITORS UP"
-bash $PREFIX/ensure.sh "$(name_of "$DB_LABEL" DB)"
+call "ensure.sh" "$(name_of "$DB_LABEL" DB)"
 while [[ true ]]; do
 
   sleep 1
@@ -128,18 +129,18 @@ while [[ true ]]; do
     PEEK=""
 
     RAW=$(echo $LOG | rev)
-    RAW=$(bash $PREFIX/split.sh "$RAW" "/" 0)
+    RAW=$(call "split.sh" "$RAW" "/" "0")
     RAW=$(echo $RAW | rev)
-    RAW=$(bash $PREFIX/split.sh "$RAW" "." 0)
+    RAW=$(call "split.sh" "$RAW" "." "0")
 
     STREAM="$PREFIX/temp/$RAW.$STREAM_POSTFIX"
     # peek
-    EEXIST=$(bash $PREFIX/file-exist.sh $STREAM)
-    if [[ "$EEXIST" == true ]]; then PEEK=$(bash $PREFIX/peek.sh $STREAM $LOG); fi
-    if [[ "$PEEK" == "ERR" ]]; then
-      ((ERRNO++))
+    EEXIST=$(call "file-exist.sh" "$STREAM")
+    if [[ "$EEXIST" == true ]]; then PEEK=$(call "peek.sh" "$STREAM" "$LOG"); fi
+    if [[ "$PEEK" == *"ERR"* ]]; then
+      ((ERRNO+=1))
       ERRLIST+=("$RAW")
-    elif [[ "$PEEK" == "FIN" ]]; then ((SUCCNO++))
+    elif [[ "$PEEK" == *"FIN"* ]]; then ((SUCCNO+=1))
     fi
   done
 
@@ -148,8 +149,8 @@ while [[ true ]]; do
     CONFIRM=false
     echo
     echo "$ERRNO TERMINALS EXPERIENCED ERRORS [ ${ERRLIST[@]} ]."
-    # bash $PREFIX/confirm.sh "NEXT TEST?"
-    # CONFIRM=$(bash $PREFIX/read-inspect.sh confirm)
+    # all "confirm.sh" "NEXT TEST?"
+    # CONFIRM=$(all "read-inspect.sh" "confirm")
     # if [[ "$CONFIRM" = true ]]; then
     #   echo "OK THEN. NEXT TEST"
 
@@ -160,29 +161,29 @@ while [[ true ]]; do
 done
 
 # cleanup
-bash $PREFIX/kill-containers.sh
+call "kill-containers.sh"
 FAILED=false
 LOGS=$(ls $PREFIX/log/*.full.log)
 for LOG in ${LOGS[@]}
 do
   RAW=$(echo $LOG | rev)
-  RAW=$(bash $PREFIX/split.sh "$RAW" "/" 0)
+  RAW=$(call "split.sh" "$RAW" "/" "0")
   RAW=$(echo $RAW | rev)
-  RAW=$(bash $PREFIX/split.sh "$RAW" "." 0)
+  RAW=$(call "split.sh" "$RAW" "." "0")
 
   # ensure logs are full and streamfiles are empty
   STREAM="$PREFIX/temp/$RAW.$STREAM_POSTFIX"
 
-  EEXIST=$(bash $PREFIX/file-exist.sh $STREAM)
-  if [[ "$EEXIST" = true ]]; then TEMP=$(bash $PREFIX/peek.sh $STREAM $LOG); fi
+  EEXIST=$(call "file-exist.sh" "$STREAM")
+  if [[ "$EEXIST" = true ]]; then TEMP=$(call "peek.sh" "$STREAM" "$LOG"); fi
 
   # produce feedback
   SUCC_PATH="$PREFIX/log/$DB_LABEL/success"
   FAIL_PATH="$PREFIX/log/$DB_LABEL/fail"
   LOG_DATA=$(cat $LOG)
-  PEEK=$(bash $PREFIX/peek.sh $LOG "/dev/null")
+  PEEK=$(call "peek.sh" "$LOG" "/dev/null")
 
-  if [[ "$PEEK" == "ERR" ]]; then
+  if [[ "$PEEK" == *"ERR"* ]]; then
     FINAL_LOG="$FAIL_PATH/$RAW.$LOG_POSTFIX"
     > $FINAL_LOG
     echo "$LOG_DATA" > $FINAL_LOG
@@ -203,7 +204,7 @@ if [[ "$FAILED" == false ]]; then
 else
   TARGET="$PREFIX/log/fail/$DB_LABEL/"
 fi
-EEXIST=$(bash $PREFIX/file-exist.sh $TARGET)
+EEXIST=$(call "file-exist.sh" "$TARGET")
 if [[ "$EEXIST" = false ]]; then mkdir "$TARGET"; fi
 
 mv "$PREFIX/log/$DB_LABEL"/* "$TARGET"

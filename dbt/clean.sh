@@ -1,6 +1,7 @@
 #!/bin/bash
-trap 'kill $$' SIGINT
-PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX/util" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
 
 ARGS=$@
 IFS=' ' read -ra ARGS <<< "$ARGS"
@@ -11,8 +12,8 @@ if [[ "$MOREARGS" == "" ]]; then
     IFS=' ' read -ra ARGS <<< "$ARGS"
 fi
 
-EEXIST=$(bash $PREFIX/util/file-exist.sh $PREFIX/util/temp.conf.out)
-if [[ "$EEXIST" = false ]]; then node $PREFIX/util/conf.js $CFGFILE; fi
+EEXIST=$(call "file-exist.sh" "$UTIL/temp.conf.out")
+if [[ "$EEXIST" = false ]]; then node $UTIL/conf.js $CFGFILE; fi
 
 PROMPT=false
 NER=false
@@ -27,7 +28,7 @@ do
 done
 
 echo "ERASING TEMP"
-rm -rf $PREFIX/util/temp/ # TODO change
+rm -rf $UTIL/temp/ # TODO change
 
 if [[ "$NER" == false ]]; then
   echo
@@ -40,22 +41,22 @@ if [[ "$NER" == false ]]; then
   echo "ORPHANED DOCKER VOLUMES TAKE ENORMOUS AMOUNTS OF SPACE"
   CONFIRM=false
   if [[ "$AER" == false ]]; then
-    bash $PREFIX/util/confirm.sh "ERASE DOCKER BLOAT AT /var/lib/docker/vfs/dir ?"
-    CONFIRM=$(bash $PREFIX/util/read-inspect.sh confirm)
+    call "confirm.sh" "ERASE DOCKER BLOAT AT /var/lib/docker/vfs/dir ?"
+    CONFIRM=$(call "$UTIL/read-inspect.sh" "confirm")
   fi
   if [[ "$CONFIRM" = true || "$AER" == true ]]; then
     echo "ERASING DOCKER BLOAT AT /var/lib/docker/vfs/dir"
     sudo rm -rf /var/lib/docker/vfs/dir
   fi
 
-  WORKDIR=$(bash $PREFIX/util/conf-obtain.sh app workdir)
-  CFILES=$(bash $PREFIX/util/conf-obtain.sh cleanups -a)
+  WORKDIR=$(call "conf-obtain.sh" "app" "workdir")
+  CFILES=$(call "conf-obtain.sh" "cleanups" "-a")
 
-  CNO=$(bash $PREFIX/util/split.sh "$CFILES" "@" 0)
+  CNO=$(call "split.sh" "$CFILES" "@" "0")
   if [[ "$CNO" != "" && "$CNO" > 0 ]]; then
-    for (( I=1; I<=CNO; I++ ))
+    for (( I=1; I<=CNO; I+=1 ))
     do
-      CFILE=$(bash $PREFIX/util/split.sh "$CFILES" "@" $I)
+      CFILE=$(call "split.sh" "$CFILES" "@" "$I")
       CFILE=$(echo $CFILE | xargs) # trims whitespace
       if [[ "$CFILE" == "." || "$CFILE" == *".."* 
          || "$CFILE" == *".git"* || "$WORKDIR/$CFILE" == "$WORKDIR"
@@ -66,8 +67,8 @@ if [[ "$NER" == false ]]; then
 
       CONFIRM=false
       if [[ "$AER" == false ]]; then
-        bash $PREFIX/util/confirm.sh "ERASE $WORKDIR/$CFILE ?"
-        CONFIRM=$(bash $PREFIX/util/read-inspect.sh confirm)
+        call "confirm.sh" "ERASE $WORKDIR/$CFILE ?"
+        CONFIRM=$(call "read-inspect.sh" "confirm")
       fi
       if [[ "$CONFIRM" = true || "$AER" == true ]]; then
         echo "ERASING $WORKDIR/$CFILE"
@@ -81,8 +82,8 @@ else
   echo
 fi
 
-bash $PREFIX/util/kill-containers.sh
-bash $PREFIX/util/kill-other-gnome.sh
+call "kill-containers.sh"
+call "kill-other-gnome.sh"
 
 if [[ "$PROMPT" = true ]]; then
     echo
@@ -93,10 +94,15 @@ fi
 echo
 
 if [[ "$LAST" == true ]]; then
-  rm "$PREFIX/util/temp.conf.out"
-  ALL=$(ls $PREFIX/util/log/)
+  rm "$UTIL/temp.conf.out"
+
+  EEXIST=$(call "file-exist.sh" "$UTIL/log")
+  if [[ "$EEXIST" = true ]]; then ALL=$(ls $UTIL/log/)
+  else ALL=""
+  fi
+
   for VAR in ${ALL[@]}; do
-    VAR="$PREFIX/util/log/$VAR"
+    VAR="$UTIL/log/$VAR"
     if [[ "$VAR" != *"fail"* && "$VAR" != *"success"* && "$VAR" != *"meta"* ]]; then  rm -rf $VAR; fi
   done
 fi

@@ -1,5 +1,7 @@
 #!/bin/bash
-trap 'kill $$' SIGINT
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
 
 echo KILLING TERMINALS
 
@@ -19,5 +21,5 @@ do
     echo $VAR
     kill $VAR
   fi
-  ((I++))
+  ((I+=1))
 done

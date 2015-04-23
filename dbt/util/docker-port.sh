@@ -1,4 +1,11 @@
-INFO=$(docker inspect $1)
+#!/bin/bash
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
+
+HEX=$1
+if [[ "$HEX" == "" ]]; then error "NO HEX SPECIFIED"; fi
+INFO=$(docker inspect $HEX)
 
 RESULT=""
 for VAR in ${INFO[@]}; do

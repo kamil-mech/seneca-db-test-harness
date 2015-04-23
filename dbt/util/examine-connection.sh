@@ -1,6 +1,7 @@
 #!/bin/bash
-trap 'kill $$' SIGINT
-PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
 
 STREAMFILE=$1
 IP=$2
@@ -16,15 +17,15 @@ FILEPATH="$PREFIX/temp/[$ID]connected.out"
 > $FILEPATH
 
 # detect errors
-PEEK=$(bash $PREFIX/peek.sh $STREAMFILE >/dev/null true)
+PEEK=$(call "peek.sh" "$STREAMFILE" "/dev/null" "true")
 
 # if no errors
 # wait for image to be up & listening
 NO_HEAD=false
 CONNECTED=""
 while [[ "$PEEK" != "ERR" && "$PEEK" != "FIN" && "$PORTS" != "" && "$CONNECTED" != *"SUCCESS"* ]]; do
-  bash $PREFIX/wait-connect.sh 2 $NO_HEAD $IP $PORTS | tee $FILEPATH
-  PEEK=$(bash $PREFIX/peek.sh $STREAMFILE >/dev/null true)
+  bash "$UTIL/wait-connect.sh" "2" "$NO_HEAD" "$IP" "$PORTS" | tee $FILEPATH
+  PEEK=$(call "peek.sh" "$STREAMFILE" "/dev/null" "true")
   CONNECTED=$(cat $FILEPATH)
   NO_HEAD=true
 done

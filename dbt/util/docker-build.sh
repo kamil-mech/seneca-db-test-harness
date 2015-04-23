@@ -1,14 +1,17 @@
 #!/bin/bash
-PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-WORKDIR=$(bash $PREFIX/conf-obtain.sh app workdir)
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
 
-DFILES=$(bash $PREFIX/conf-obtain.sh dockbuilds -a)
-FILENO=$(bash $PREFIX/split.sh "$DFILES" "@" 0)
+WORKDIR=$(call "conf-obtain.sh" "app" "workdir")
 
-for (( I=1; I<=FILENO; I++ ))
+DFILES=$(call "conf-obtain.sh" "dockbuilds" "-a")
+FILENO=$(call "split.sh" "$DFILES" "@" "0")
+
+for (( I=1; I<=FILENO; I+=1 ))
 do
-  FILE=$(bash $PREFIX/split.sh "$DFILES" "@" $I)
-  IMGNAME=$(bash $PREFIX/split.sh "$FILE" " " 0)
-  IMGLOC=$(bash $PREFIX/split.sh "$FILE" " " 1)
+  FILE=$(call "split.sh" "$DFILES" "@" "$I")
+  IMGNAME=$(call "split.sh" "$FILE" " " "0")
+  IMGLOC=$(call "split.sh" "$FILE" " " "1")
   docker build --force-rm -t $IMGNAME $WORKDIR/$IMGLOC
 done

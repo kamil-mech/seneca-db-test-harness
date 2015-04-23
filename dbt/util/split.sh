@@ -1,3 +1,8 @@
+#!/bin/bash
+PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+UTIL="$PREFIX" # <-- WARNING change manually when changing location
+source $UTIL/tools.sh
+
 STR=$1
 DELIM=$2
 INDEX=$3

@@ -1,4 +1,4 @@
-# seneca-db-test-harness 0.3.0
+# seneca-db-test-harness 0.3.1
 
 ```
 npm test --args="[PROJECT_NAME] [FLAGS]"

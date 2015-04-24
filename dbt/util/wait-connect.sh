@@ -8,8 +8,8 @@ declare -i TICKS_PASSED=0
 NO_HEAD=$2
 IP=$3
 
-IFS=" " read -ra ARGS <<< "$@"   # from args to array
-PORTS=$(echo ${ARGS[@]})         # back to string
+IFS=" " read -ra ARGS <<< "$@"
+PORTS=$(echo ${ARGS[@]})
 PORTS=${PORTS:${#ARGS[0]}+1}     # remove #1 arg
 PORTS=${PORTS:${#ARGS[1]}+1}     # remove #2 arg
 PORTS=${PORTS:${#ARGS[2]}+1}     # remove #3 arg

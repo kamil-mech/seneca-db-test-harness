@@ -6,13 +6,6 @@ source $UTIL/tools.sh
 declare -a NAMES=()
 declare -A SCORES
 
-# NAME="jsonfile-db"
-# KEY="$NAME""_FAIL"
-# SCORES[$KEY]=0
-# echo HERE1: ${SCORES[$KEY]}
-# ((SCORES[$KEY]+=1))
-# echo HERE2: ${SCORES[$KEY]}
-
 LOG_FOLDER="$PREFIX/log"
 FAIL_FOLDER="$LOG_FOLDER/fail"
 SUCCESS_FOLDER="$LOG_FOLDER/success"

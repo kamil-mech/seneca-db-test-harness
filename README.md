@@ -81,18 +81,19 @@ dbs supported:
 
 *** when no dbs specified, it tests them all
 
-|  flag  |                           operation                            |
-|--------|----------------------------------------------------------------|
-| -dbs   | specify dbs                                                    |
-| -fd    | force docker pull                                              |
-| -fb    | force app build                                                |
-| -tu    | unit test only                                                 |
-| -ta    | acceptance test only                                           |
-| -nt    | no test, just run everything                                   |
-| -man   | manual control and no log report                               |
-| -clean | clean up                                                       |
-| -ner   | never erase custom temp files on cleanup                       |
-| -aer   | always erase custom temp files on cleanup                      |
+|  flag  |                           operation                               |
+|--------|-------------------------------------------------------------------|
+| -dbs   | specify dbs                                                       |
+| -fd    | force docker pull                                                 |
+| -fb    | force app build                                                   |
+| -tu    | unit test only                                                    |
+| -ta    | acceptance test only                                              |
+| -nt    | no test, just run everything                                      |
+| -man   | manual control and no log report                                  |
+| -clean | clean up                                                          |
+| -ner   | never erase custom temp files on cleanup                          |
+| -aer   | always erase custom temp files on cleanup                         |
+| -timg  | tidy up images (rmi images with no name and no tag <none> <none>) |
 
 e.g.
 

@@ -19,12 +19,15 @@ PROMPT=false
 NER=false
 AER=false
 LAST=false
+TIMG=false
 for VAR in "${ARGS[@]}"
 do
-    if [[ "$VAR" = "-prompt" ]]; then PROMPT=true; fi
-    if [[ "$VAR" = "-ner" ]]; then NER=true; fi
-    if [[ "$VAR" = "-aer" ]]; then AER=true; fi
-    if [[ "$VAR" = "-last" ]]; then LAST=true; fi
+  if [[ "$VAR" = "-prompt" ]]; then PROMPT=true
+  elif [[ "$VAR" = "-ner" ]]; then NER=true
+  elif [[ "$VAR" = "-aer" ]]; then AER=true
+  elif [[ "$VAR" = "-last" ]]; then LAST=true
+  elif [[ "$VAR" = "-timg" ]]; then TIMG=true
+  fi
 done
 
 echo "ERASING TEMP"
@@ -84,6 +87,8 @@ fi
 
 call "kill-containers.sh"
 call "kill-other-gnome.sh"
+
+if [[ "$TIMG" == true ]]; then call "clean-images.sh"; fi
 
 if [[ "$PROMPT" = true ]]; then
     echo

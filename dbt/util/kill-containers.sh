@@ -7,8 +7,5 @@ echo "KILLING CONTAINERS"
 CONTAINERS=$(docker ps -a -q)
 if [[ "$CONTAINERS" == "" ]]; then echo "NOTHING TO KILL"
 else
-    docker kill $(docker ps -a -q)
-
-    CONTAINERS=$(docker ps -a -q)
-    if [[ "$CONTAINERS" != "" ]];  then docker rm $(docker ps -a -q); fi
+  docker rm -f $(docker ps -a -q)
 fi

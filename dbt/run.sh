@@ -2,7 +2,7 @@
 PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
 UTIL="$PREFIX/util" # <-- WARNING change manually when changing location
 source $UTIL/tools.sh
-trap 'error "" "NOEXIT"' ERR # noexit tools.error to keep things running
+trap '' ERR # disable tools.error
 
 echo -ne "\033]0;DBT Manager\007" # sets title
 

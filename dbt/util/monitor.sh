@@ -161,7 +161,6 @@ while [[ true ]]; do
 done
 
 # cleanup
-call "kill-containers.sh"
 FAILED=false
 LOGS=$(ls $PREFIX/log/*.full.log)
 for LOG in ${LOGS[@]}

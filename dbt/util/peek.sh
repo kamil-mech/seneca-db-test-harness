@@ -22,6 +22,6 @@ if [[ "$LCBUFFER" == *"error"* ]]; then
   cat $STREAMFILE >> $LOGFILE
   echo "ERR"
 elif [[ "$BUFFER" == *"MONITOR-FIN"* ]]; then echo "FIN"
-elif [[ "$LCBUFFER" == "" ]]; then echo "EMPTY" 
+elif [[ "$LCBUFFER" == "" ]]; then echo "EMPTY"
 else echo "OK"
 fi

@@ -24,6 +24,7 @@ FB=false
 TU=false
 TA=false
 NT=false
+ST=false
 MAN=false
 declare -a DEFAULT_DBS=("mem" "mongo" "jsonfile" "redis" "postgres" "mysql")
 declare -a OBSOLETE_DBS=("cassandra")
@@ -39,6 +40,7 @@ for VAR in "${ARGS[@]}"; do
   elif [[ "$VAR" == "-tu" ]]; then TU=true;
   elif [[ "$VAR" == "-ta" ]]; then TA=true;
   elif [[ "$VAR" == "-nt" ]]; then NT=true;
+  elif [[ "$VAR" == "-st" ]]; then ST=true;
   elif [[ "$VAR" == "-man" ]]; then MAN=true;
   # dbs can be directly specified, no constraints
   elif [[ "$VAR" == "-dbs" ]]; then POPULATING=true; declare -a DBS=()
@@ -125,7 +127,7 @@ do
   fi
 
   # running app, rebuild is optional
-  if [[ "$TU" == false ]]; then
+  if [[ "$TU" == false && "$ST" == false  ]]; then
     IMAGES=$(docker images | grep well-app)
     if [[ "$FB" == true || "$IMAGES" == "" ]]; then
       echo "REBUILD THE APP"
@@ -154,7 +156,7 @@ do
       call "dockrunner.sh" "$DB" "$IMG"
     done
   else
-    echo "NO NEED TO RUN THE APP FOR UNIT TEST"
+    echo "NO NEED TO RUN THE APP FOR SMOKE/UNIT TEST"
   fi
 
   if [[ "$DB" == "rethinkdb" ]]; then DB="rethink"; fi
@@ -162,7 +164,7 @@ do
   if [[ "$NT" == false ]]; then
     echo
     echo "TEST $DB DB"
-    call "/dockrunner.sh" "$DB" "; bash $UTIL/test.sh $DB $TU $TA $DB_IP $DB_PORTS"
+    call "/dockrunner.sh" "$DB" "; bash $UTIL/test.sh $DB $TU $TA $ST $DB_IP $DB_PORTS"
   fi
 
   if [[ "$MAN" == false ]]; then

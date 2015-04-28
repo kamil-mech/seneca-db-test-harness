@@ -6,14 +6,17 @@ source $UTIL/tools.sh
 DB=$1
 TU=$2
 TA=$3
-IP=$4
-PORT=$5
+ST=$4
+IP=$5
+PORT=$6
 if [[ "$DB" = "postgres" ]]; then DB="postgresql"; fi
 DB="$DB-store"
 
 sleep 1
 
-if [[ "$TU" = true ]]; then
+
+if [[ "$ST" == true ]]; then cd $UTIL/../..; npm run smoke --db=$DB --ip=$IP --port=$PORT # TODO change it so that smoke test can run together with other ones
+elif [[ "$TU" = true ]]; then
     npm run utest --db=$DB --ip=$IP --port=$PORT
 elif [[ "$TA" = true ]]; then
     npm run atest

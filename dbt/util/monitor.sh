@@ -140,7 +140,7 @@ while [[ true ]]; do
     if [[ "$PEEK" == *"ERR"* ]]; then
       ((ERRNO+=1))
       ERRLIST+=("$RAW")
-    elif [[ "$PEEK" == *"FIN"* ]]; then ((SUCCNO+=1))
+    elif [[ "$STREAM" != *"$DB"* && "$PEEK" == *"FIN"* ]]; then ((SUCCNO+=1))
     fi
   done
 

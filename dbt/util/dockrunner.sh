@@ -14,8 +14,6 @@ DB=${IMG[0]}                  # obtain DB
 IMG=${IMG:${#IMG[0]}}         # remove first arg
 IMG=$(echo ${IMG[@]})         # back to string
 
-call "ensure.sh" "$UTIL/temp"
-
 LABEL=$(call "monitor.sh" "$DB" "LABEL" "$IMG")
 if [[ "$LABEL" == *"$DB"* ]]; then echo "BOOTING $LABEL"
 else echo "BOOTING $LABEL WITH $DB DB"

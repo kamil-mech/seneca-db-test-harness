@@ -121,7 +121,7 @@ do
     fi
 
   else
-    echo "USING SENECA-STORE_LISTEN FOR $DB"
+    echo "USING SENECA-STORE-LISTEN FOR $DB"
   fi
 
   # running app, rebuild is optional

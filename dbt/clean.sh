@@ -30,6 +30,9 @@ do
   fi
 done
 
+call "kill-containers.sh"
+call "kill-other-gnome.sh"
+
 echo "ERASING TEMP"
 rm -rf $UTIL/temp/ # TODO change
 
@@ -85,10 +88,7 @@ else
   echo
 fi
 
-call "kill-containers.sh"
-call "kill-other-gnome.sh"
-
-if [[ "$TIMG" == true ]]; then call "clean-images.sh"; fi
+if [[ "$TIMG" == true ]]; then call "clean-images.sh"; TIMG=false; fi
 
 if [[ "$PROMPT" = true ]]; then
     echo

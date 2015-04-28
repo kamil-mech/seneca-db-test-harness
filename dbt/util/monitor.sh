@@ -149,8 +149,8 @@ while [[ true ]]; do
     CONFIRM=false
     echo
     echo "$ERRNO TERMINALS EXPERIENCED ERRORS [ ${ERRLIST[@]} ]."
-    # all "confirm.sh" "NEXT TEST?"
-    # CONFIRM=$(all "read-inspect.sh" "confirm")
+    # call "confirm.sh" "NEXT TEST?"
+    # CONFIRM=$(call "read-inspect.sh" "confirm")
     # if [[ "$CONFIRM" = true ]]; then
     #   echo "OK THEN. NEXT TEST"
 

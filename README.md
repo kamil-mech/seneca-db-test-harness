@@ -90,7 +90,7 @@ dbs supported:
 | -ta    | acceptance test only                                              |
 | -nt    | no test, just run everything                                      |
 | -man   | manual control and no log report                                  |
-| -clean | clean up                                                          |
+| -clean | clean up only                                                     |
 | -ner   | never erase custom temp files on cleanup                          |
 | -aer   | always erase custom temp files on cleanup                         |
 | -timg  | tidy up images (rmi images with no name and no tag <none> <none>) |

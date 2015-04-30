@@ -39,7 +39,7 @@ for VAR in "${ARGS[@]}"; do
   elif [[ "$VAR" == "-fb" ]]; then FB=true;
   elif [[ "$VAR" == "-tu" ]]; then TU=true;
   elif [[ "$VAR" == "-ta" ]]; then TA=true;
-  elif [[ "$VAR" == "-nt" ]]; then NT=true;
+  elif [[ "$VAR" == "-nt" ]]; then NT=true; MAN=true;
   elif [[ "$VAR" == "-st" ]]; then ST=true;
   elif [[ "$VAR" == "-man" ]]; then MAN=true;
   # dbs can be directly specified, no constraints
@@ -167,11 +167,7 @@ do
     call "/dockrunner.sh" "$DB" "; bash $UTIL/test.sh $DB $TU $TA $ST $DB_IP $DB_PORTS"
   fi
 
-  if [[ "$MAN" == false ]]; then
-    # monitor for errors
-    call "monitor.sh" "$DB"
-    call "clean.sh" "${ARGS[@]} -last"
-  else
+  if [[ "$MAN" == true ]]; then
     # prepare for next
     echo
     echo "TAP [ENTER] KEY TO"
@@ -179,18 +175,28 @@ do
     read
     echo
     call "clean.sh" "${ARGS[@]} -last -prompt"
+  else
+    # monitor for errors
+    call "monitor.sh" "$DB"
+    call "clean.sh" "${ARGS[@]} -last"
   fi
 done
 
 echo -ne "\033]0;DBT Manager\007" # sets title
 
-SUMMARY=$(call "summarize.sh")
-echo "--------------------------------"
-echo "$SUMMARY" > $UTIL/log/README.md
-echo "$SUMMARY"
-echo
+if [[ "$MAN" != true && "${#DBS[@]}" -gt 0 ]]; then
+  SUMMARY=$(call "summarize.sh")
+  echo "--------------------------------"
+  echo "$SUMMARY" > $UTIL/log/README.md
+  echo "$SUMMARY"
+  echo
+fi
+
 
 # copy log folder to where it calls the script
-call "ensure.sh" "$PREFIX/../log/"
-mv "$UTIL/log"/* "$PREFIX/../log" 
-rm -rf "$UTIL/log"
+EEXIST=$(call "file-exist.sh" "$UTIL/log")
+if [[ "$EEXIST" == true ]]; then
+  call "ensure.sh" "$PREFIX/../log/"
+  mv "$UTIL/log"/* "$PREFIX/../log" 
+  rm -rf "$UTIL/log"
+fi

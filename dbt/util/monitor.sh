@@ -204,7 +204,7 @@ else
   TARGET="$PREFIX/log/fail/$DB_LABEL/"
 fi
 EEXIST=$(call "file-exist.sh" "$TARGET")
-if [[ "$EEXIST" = false ]]; then mkdir "$TARGET"; fi
+if [[ "$EEXIST" == false ]]; then mkdir "$TARGET"; fi
 
 mv "$PREFIX/log/$DB_LABEL"/* "$TARGET"
 

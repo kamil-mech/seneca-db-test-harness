@@ -18,6 +18,7 @@
     "optimist": "^0.6.1",
     "seneca-mongo-store": "^0.2.0",
     "seneca-jsonfile-store": "^0.2.2",
+    "seneca-level-store": "^0.2.1",
     "seneca-cassandra-store": "^0.0.1",
     "seneca-couchdb-store": "^0.0.2",
     "seneca-orient-store": "^1.0.1",

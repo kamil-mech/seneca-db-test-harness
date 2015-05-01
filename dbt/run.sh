@@ -26,7 +26,7 @@ TA=false
 NT=false
 ST=false
 MAN=false
-declare -a DEFAULT_DBS=("mem" "mongo" "jsonfile" "redis" "postgres" "mysql")
+declare -a DEFAULT_DBS=("mem" "mongo" "jsonfile" "redis" "postgres" "mysql" "level")
 declare -a OBSOLETE_DBS=("cassandra")
 declare -a MALFUNC_DBS=("fedora" "orient")
 declare -a DBS=${DEFAULT_DBS[@]}
@@ -60,7 +60,7 @@ for VAR in "${ARGS[@]}"; do
   fi
 done
 
-declare -a LINKLESS=("mem" "jsonfile")
+declare -a LINKLESS=("mem" "jsonfile" "level")
 declare -a IGNORED=()
 
 # generate conf

@@ -45,7 +45,7 @@ echo "echo $SCRIPTS" >> "$SCRIPT_FILE"
 if [[ "$SCRIPTS" == *"test"* ]]; then
   TITLE="Test"
 elif [[ "$RAWIMG" == *"--env"* ]]; then
-  declare -a LINKLESS=("mem" "jsonfile")
+  declare -a LINKLESS=("mem" "jsonfile" "level")
   LINKED=true
   for LINK in ${LINKLESS[@]}
   do

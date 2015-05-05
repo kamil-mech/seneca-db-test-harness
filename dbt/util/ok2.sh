@@ -6,16 +6,6 @@ trap '' ERR # disable error handler
 
 DB="$1"
 LEADING_FILE="$2"
-
-# call "termon.sh" "bash $UTIL/ok.sh" "IP" "a07"
-# sleep 0.1
-# call "termon.sh" "bash $UTIL/ok.sh" "IP" "a07"
-# sleep 0.1
-call "termon.sh" "bash $UTIL/ok.sh" "IP" "a07"
-sleep 0.2
-call "termon.sh" "bash $UTIL/ok3.sh"
-
-# main part
 LOG_PATH="$UTIL/log"
 
 # increment DB log folder, if preexist
@@ -57,23 +47,25 @@ for FILE in ${LOGFILES[@]}; do
   LABEL="$(echo $FILE | rev | cut -c 5- | rev)"
 
   if [[ "${FINFILES[@]}" == *"$LABEL"* ]]; then
-    echo "$LABEL IS FIN"
+    # echo "$LABEL IS FIN"
     mv "$LOG_PATH/$FILE" "$FINISH_PATH"
   elif [[ "${ERRFILES[@]}" == *"$LABEL"* ]]; then
-    echo "$LABEL IS ERR"
+    # echo "$LABEL IS ERR"
     mv "$LOG_PATH/$FILE" "$CRASH_PATH"
     mv "$LOG_PATH"/*.err "$CRASH_PATH"
   else
-    echo "$LABEL IS INTERRUPTED"
+    # echo "$LABEL IS INTERRUPTED"
     mv "$LOG_PATH/$FILE" "$INTERRUPT_PATH"
   fi
 done
 
 # feedback
+echo
 if [[ "${ERRFILES[@]}" != "" ]]; then echo "ERROR: CRASH DETECTED"
 elif [[ "${FINFILES[@]}" != *"$LEADING_FILE"* ]]; then echo "ERROR: SHUTDOWN DETECTED BEFORE $LEADING_FILE FINISHED"
 else echo "ALL CLEAR"
 fi
+echo
 
 # cleanup
 rm "$LOG_PATH"/*.fin

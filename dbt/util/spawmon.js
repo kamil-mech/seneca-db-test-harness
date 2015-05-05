@@ -5,16 +5,19 @@ var util  = require('util')
 
 var argv  = process.argv.splice(2, process.argv.length)
 var base  = argv[0]
-var argv  = argv.splice(1, argv.length)
+var label = require(__dirname + '/label.js')()
 
+console.log('label is ' + util.inspect(label.make(argv)))
+process.exit(0)
+
+var argv  = argv.splice(1, argv.length)
 var filepath = argv[0]
-var label = get_label(filepath)
-var logfile = __dirname + '/log/' + label + '.log'
-var finfile = __dirname + '/log/' + label + '.fin'
-var errfile = __dirname + '/log/' + label + '.err'
+var logfile  = __dirname + '/log/' + label + '.log'
+var finfile  = __dirname + '/log/' + label + '.fin'
+var errfile  = __dirname + '/log/' + label + '.err'
 
 // run
-var cp    = spawn(base, argv)
+var cp = spawn(base, argv)
 
 output('\nBooting ' + label)
 output('\nPID: ' + cp.pid + '\n\n')

@@ -6,33 +6,37 @@ source $UTIL/tools.sh
 OPTION=$1
 HEX=$2
 
-if [[ "$HEX" != "" ]]; then
-  if [[ "$OPTION" == "IP" ]]; then
+declare -a OPTIONS=("IP" "PORTS" "HEX")
+OPLIST="${OPTIONS[@]}" # tostring
 
-    IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $HEX)
-    if [[ "$IP" == "<no value>" ]]; then error "FAILED TO FETCH IP"
-    else echo "$IP"
-    fi
-  elif [[ "$OPTION" == "PORTS" ]]; then
-    call "docker-port.sh $HEX"  # TODO replace all docker-port calls with this script?
-  elif [[ "$OPTION" == "HEX" ]]; then
-    LABEL="$HEX"
-    HEX=""
-    I=0
-    while [[ true ]]; do
-      ((I+=1))
+if [[ "$OPLIST" == *"$OPTION"* ]]; then
+  if [[ "$HEX" != "" ]]; then
+    if [[ "$OPTION" == "IP" ]]; then
 
-      EEXIST=$(call "file-exist.sh" "$UTIL/temp/$LABEL.hex.out")
-      if [[ "$EEXIST" == true ]]; then HEX=$(cat $UTIL/temp/$LABEL.hex.out); fi
-      HEX=${HEX:0:8}
-      if [[ "$HEX" != "" || "$I" > 3 ]]; then break; fi
-      sleep 1
-    done
-    if [[ "$HEX" == "" ]]; then error "FAILED TO FETCH HEX OF $LABEL"
-    else echo "$HEX"
+      IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $HEX)
+      if [[ "$IP" == "<no value>" ]]; then error "FAILED TO FETCH IP"
+      else echo "$IP"
+      fi
+    elif [[ "$OPTION" == "PORTS" ]]; then
+      call "docker-port.sh $HEX"  # TODO replace all docker-port calls with this script?
+    elif [[ "$OPTION" == "HEX" ]]; then
+      LABEL="$HEX"
+      HEX=""
+      I=0
+      while [[ true ]]; do
+        ((I+=1))
+
+        EEXIST=$(call "file-exist.sh" "$UTIL/temp/$LABEL.hex.out")
+        if [[ "$EEXIST" == true ]]; then HEX=$(cat $UTIL/temp/$LABEL.hex.out); fi
+        HEX=${HEX:0:8}
+        if [[ "$HEX" != "" || "$I" > 3 ]]; then break; fi
+        sleep 1
+      done
+      if [[ "$HEX" == "" ]]; then error "FAILED TO FETCH HEX OF $LABEL"
+      else echo "$HEX"
+      fi
     fi
-  else
-    error "INVALID OPTION [$OPTION]"
+  else error "NO HEX/NAME SPECIFIED"
   fi
-else error "NO HEX/NAME SPECIFIED"
+else error "INVALID OPTION [$OPTION]. CHOOSE ONE: $OPLIST"
 fi

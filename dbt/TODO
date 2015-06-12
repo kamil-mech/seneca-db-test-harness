@@ -3,7 +3,6 @@ db test todo:
   - check: docker-inspect for hex option
 
   - needs proper smoke test(currently naive)
-  - (well-app) get rid of dbs from package.json # well, you kinda can't, but see what you can do
   - update readme
   - mention -st in README.md
   - add schemas to smoke test
@@ -34,10 +33,6 @@ db test todo:
   - mention psql and msql install in readme
   - comment bash scripts
   - clean conf-obtain.sh
-  - (well-app) check data editor against all db types. some stuff is not working
-  - (well-app) when doing -nt and manually checking data-editor, redis has no entries inside entities
-  - (well-app) find a way to unit test faster. rebuilding db takes plenty of time
-  - (well-app) remove obsolete, uncommented code from unit test
   - resolve postgres vs postgresql ambiguity
   - make good documentation
   - add more config options for schema-based dbs in conf file

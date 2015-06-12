@@ -37,8 +37,6 @@ module.exports = {
       // --link and -e db= will be added automatically.
       // if it exposes a port, tester will automatically
       // wait for it to start listening before booting next.
-      // use ; to add bash commands to be ran after image stops operating
-      // e.g. '-p 3333:3333 well-app ; echo We are finished!; read'
       dockimages:['-p 3333:3333 --rm well-app'],
       // dockerfiles to be rebuilt when -fb is used
       // syntax: [image-tag] [path_to_dockerfile]

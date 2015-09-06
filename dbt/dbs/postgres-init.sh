@@ -1,6 +1,19 @@
 #!/bin/bash
 PREFIX="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
 UTIL="$PREFIX/../util" # <-- WARNING change manually when changing location
+
+echo "CHECKING FOR psql COMMAND"
+psql --version
+if [[ "$?" -gt 0 ]]; then
+  echo "MISSING COMMAND psql"
+  echo "INSTALL VIA: sudo apt-get install postgres-xc-client"
+  echo
+  read
+  echo 
+  exit 0
+fi
+
+
 source $UTIL/tools.sh
 
 WORKDIR=$(call "conf-obtain.sh" "app" "workdir")

@@ -35,8 +35,8 @@ call "kill-other-gnome.sh"
 
 echo "ERASING TEMP"
  # TODO change
+call "ensure.sh" "$UTIL/temp/"
 rm -rf $UTIL/temp/*
-rm -rf $UTIL/temp/
 
 if [[ "$NER" == false ]]; then
   echo

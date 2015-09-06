@@ -54,6 +54,15 @@ if [[ "$NER" == false ]]; then
     echo "ERASING DOCKER BLOAT AT /var/lib/docker/vfs/dir"
     sudo rm -rf /var/lib/docker/vfs/dir
   fi
+  CONFIRM=false
+  if [[ "$AER" == false ]]; then
+    call "confirm.sh" "ERASE DOCKER BLOAT AT /var/lib/docker/volumes ?"
+    CONFIRM=$(call "$UTIL/read-inspect.sh" "confirm")
+  fi
+  if [[ "$CONFIRM" = true || "$AER" == true ]]; then
+    echo "ERASING DOCKER BLOAT AT /var/lib/docker/volumes"
+    sudo rm -rf /var/lib/docker/volumes
+  fi
 
   WORKDIR=$(call "conf-obtain.sh" "app" "workdir")
   CFILES=$(call "conf-obtain.sh" "cleanups" "-a")

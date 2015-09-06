@@ -38,7 +38,7 @@ rm -rf $UTIL/temp/ # TODO change
 
 if [[ "$NER" == false ]]; then
   echo
-  echo "CLEANING AFTER DB TEST"
+  echo "CLEANING AFTER LAST DB TEST"
   echo "YOU CAN USE -ner FLAG TO NEVER ERASE CUSTOM FILES"
   echo "OR -aer FLAG TO ALWAYS ERASE WITHOUT PROMPT (CAREFUL - CAN DESTROY HUMANITY!)"
   echo "IT IS ADVISED TO SET -aer FLAG AFTER SUCCESSFUL RUN WITHOUT IT"
@@ -48,7 +48,7 @@ if [[ "$NER" == false ]]; then
   CONFIRM=false
   if [[ "$AER" == false ]]; then
     call "confirm.sh" "ERASE DOCKER BLOAT AT /var/lib/docker/vfs/dir ?"
-    CONFIRM=$(call "$UTIL/read-inspect.sh" "confirm")
+    CONFIRM=$(call "read-inspect.sh" "confirm")
   fi
   if [[ "$CONFIRM" = true || "$AER" == true ]]; then
     echo "ERASING DOCKER BLOAT AT /var/lib/docker/vfs/dir"
@@ -57,7 +57,7 @@ if [[ "$NER" == false ]]; then
   CONFIRM=false
   if [[ "$AER" == false ]]; then
     call "confirm.sh" "ERASE DOCKER BLOAT AT /var/lib/docker/volumes ?"
-    CONFIRM=$(call "$UTIL/read-inspect.sh" "confirm")
+    CONFIRM=$(call "read-inspect.sh" "confirm")
   fi
   if [[ "$CONFIRM" = true || "$AER" == true ]]; then
     echo "ERASING DOCKER BLOAT AT /var/lib/docker/volumes"

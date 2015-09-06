@@ -34,7 +34,9 @@ call "kill-containers.sh"
 call "kill-other-gnome.sh"
 
 echo "ERASING TEMP"
-rm -rf $UTIL/temp/ # TODO change
+ # TODO change
+rm -rf $UTIL/temp/*
+rm -rf $UTIL/temp/
 
 if [[ "$NER" == false ]]; then
   echo

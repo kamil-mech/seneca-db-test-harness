@@ -13,7 +13,15 @@ if [[ "$DB" = "postgres" ]]; then DB="postgresql"; fi
 DB="$DB-store"
 
 sleep 1
+IFS='-' read -ra DB_CAPS <<< "$DB"
+DB_CAPS=${DB_CAPS[0]}
+DB_CAPS=$(echo $DB_CAPS | tr 'a-z' 'A-Z')
 
+# create env variable
+v="$DB_CAPS""_LINK_PORT_""$PORT""_TCP_ADDR"
+declare "$v"=$IP
+export $v
+echo "SETTING $v = $IP"
 
 if [[ "$ST" == true ]]; then cd $UTIL/../..; npm run smoke --db=$DB --ip=$IP --port=$PORT # TODO change it so that smoke test can run together with other ones
 elif [[ "$TU" = true ]]; then

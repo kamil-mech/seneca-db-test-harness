@@ -4,8 +4,7 @@ process.setMaxListeners(0)
 var _      = require('lodash')
 var assert = require('assert')
 
-describe('Smoke test', function(){
-  this.timeout(5000)
+describe('smoke test', function(){
 
   it ('happy', function(done){
     var helper = require('./smoke-test-helper.js')(done)

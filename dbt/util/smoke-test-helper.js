@@ -14,6 +14,7 @@ function init (handler) {
   var util = require('util')
 
   var si = require('seneca')({
+    strict: { result: false },
     errhandler: handler,
     default_plugins:{'mem-store':false}
   })

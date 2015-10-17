@@ -35,8 +35,7 @@ gargs.shift();
 var flags = {};
 var extras = [];
 var dbs = [];
-var appname;
-var apppath;
+var app = {};
 
 // preload
 console.log('---------');
@@ -89,7 +88,7 @@ function main(args, cb){
         function(next){ monitor(args, next); },
         cleanup
       ], function(err, res){
-      if (err) console.log(err + '\nSkip to next');
+      if (err) console.log(err.stack + '\nSkip to next');
       cleanup(function(){
         console.log('end ' + db + '-' + i);
         cb();
@@ -105,9 +104,9 @@ function processArgs(){
   debugOut('gargs: ' + gargs);
   if (_.isEmpty(gargs)) throw new Error('no args provided');
 
-  appname = gargs[0];
+  app.name = gargs[0];
   gargs.shift();
-  debugOut('app: ' + appname);
+  debugOut('app: ' + app.name);
 
   var popdbs = false;
   _.each(gargs, function(arg){
@@ -131,10 +130,10 @@ function processArgs(){
 function loadConf(){
   console.log();
   console.log('get conf from file');
-  var apppath = __dirname + '/../' + appname + '/';
-  debugOut('apppath: ' + apppath);
+  app.path = __dirname + '/../' + app.name + '/';
+  debugOut('app.path: ' + app.path);
 
-  var files = fs.readdirSync(apppath);
+  var files = fs.readdirSync(app.path);
   debugOut('files: ' + files);
 
   var optionsFile = _.find(files, function(file) {
@@ -142,10 +141,11 @@ function loadConf(){
   })
   debugOut('optionsFile: ' + optionsFile);
 
-  var options = require(apppath + optionsFile);
+  var options = require(app.path + optionsFile);
   if (!options.dbt) throw new Error('no options provided');
   if (!options.dbt.dockimages) throw new Error('no dockimages provided');
   debugOut('options: ' + util.inspect(options.dbt));
+  app.options = options;
 }
 
 function rundb(args, cb){
@@ -183,10 +183,11 @@ function rundb(args, cb){
       debugOut(term.pid + '-stdout: ' + stdout);
       debugOut(term.pid + '-stderr: ' + stderr);
     });
+    // wait for db
     var cidfile = 'temp/' + dblabel + '.cid';
     waitContainer(cidfile, 30, function(res){
       if (!res) return cb(new Error('DB Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
-      proc.exec('docker inspect ' + dblabel + ' >temp/' + dblabel + '.conf', function(err, stdout, stderr){
+      proc.exec('docker inspect ' + db + ' >temp/' + dblabel + '.conf', function(err, stdout, stderr){
         debugOut('get db container info');
         var dbconf;
         try {
@@ -203,6 +204,11 @@ function rundb(args, cb){
         waitReady(dbip, dbconst.port, 60, function(res){
         if (!res) return cb(new Error('Timed out while waiting for db'))
           debugOut('ready? ' + res);
+          args.dbcontainer = {
+            dblabel: dblabel,
+            ip: dbip,
+            port: dbconst.port
+          }
           return cb();
         });
       });
@@ -211,14 +217,75 @@ function rundb(args, cb){
 }
 
 function runapp(args, cb){
+  var db = args.db;
+  var i = args.i;
   console.log();
   console.log('run app');
-  debugOut('build app image');
-  debugOut('use db info');
-  debugOut('run app image & attach monitor');
+
+  var image = app.options.dbt.dockimages;
+  var image = image[0]; // TODO REPLACE WITH ITERATION
+  image = image.split(' ');
+  image = image[image.length - 1];
+  var imagelabel = image + i;
+  debugOut('imagelabel: ' + imagelabel)
+
+  // pop a new terminal(gnome-terminal)
+  var base = 'temp/' + imagelabel;
+  var infofile = base + '.json';
+  var logfile = base + '.log';
+  var info =  args;
+  info.launch = 'app';
+  info.app = app;
+  info.image = image;
+  info.imagelabel = imagelabel;
+  info.flags = flags;
+  fs.writeFileSync(infofile, JSON.stringify(info));
+  debugOut('run app image ' + imagelabel + ' & attach monitor');
+  var cmd = 'gnome-terminal --disable-factory -x bash -c "node lib/spawmon.js ' + infofile + '; read"';
+  debugOut('cmd: ' + cmd);
+  var term = proc.exec(cmd, function(err, stdout, stderr){
+    debugOut(term.pid + '-err: ' + err);
+    debugOut(term.pid + '-stdout: ' + stdout);
+    debugOut(term.pid + '-stderr: ' + stderr);
+  });
+  // wait for image
   debugOut('wait for app container');
-  debugOut('get app container info');
-  cb();
+  var cidfile = 'temp/' + imagelabel + '.cid';
+  waitContainer(cidfile, 30, function(res){
+    if (!res) return cb(new Error('Image Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
+    proc.exec('docker inspect ' + imagelabel + ' >temp/' + imagelabel + '.conf', function(err, stdout, stderr){
+      debugOut('get app container info');
+      var imgconf;
+      var imgip;
+      var imgport;
+      try {
+        imgconf = fs.readFileSync('temp/' + imagelabel + '.conf');
+        imgconf = JSON.parse(imgconf);
+        imgconf = imgconf[0];
+        // determine ip
+        imgip = imgconf.NetworkSettings.IPAddress;
+        // determine port
+        imgport = imgconf.Config.ExposedPorts;
+        imgport = Object.keys(imgport)[0].toString().split('/')[0];
+      } catch(err) {
+        return cb(err);
+      }
+      debugOut('imgconf: ' + imgconf);
+      debugOut('imgip: ' + imgip);
+      debugOut('imgport: ' + imgport); // enchancement: look for more ports to try or get specifics from the user
+
+      waitReady(imgip, imgport, 60, function(res){
+      if (!res) return cb(new Error('Timed out while waiting for image'))
+        debugOut('ready? ' + res);
+        args.imgcontainer = { // enchancement: multiple images
+          imagelabel: imagelabel,
+          ip: imgip,
+          port: imgport
+        }
+        return cb();
+      });
+    });
+  })
 }
 
 function runtest(args, cb){
@@ -302,7 +369,7 @@ function waitReady(ip, port, timeout, cb){
       })
     };
 
-    console.log('wait for response:');
+    console.log('wait for response at ' + ip + ':' + port);
     async.series(calls, function(res){
       console.log();
       cb(res);

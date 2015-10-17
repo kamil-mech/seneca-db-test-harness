@@ -9,7 +9,7 @@ var proc   = require('child_process');
 
 var rimraf = require('rimraf');
 
-process.on('SIGINT', function () {
+process.on('SIGINT', function () { // TODO catch error and do same
   cleanup(function(){
     process.exit(0);
   })
@@ -157,6 +157,7 @@ function rundb(args, cb){
   try {
     var dbconst = fs.readFileSync('dbs/' + db + '.json');
     dbconst = JSON.parse(dbconst);
+    args.dbconst = dbconst;
     debugOut('dbconst: ' + util.inspect(dbconst));
   } catch(err){
     if (err.message.indexOf('ENOENT') > -1) return cb(new Error('DB ' + db + ' is not supported'));
@@ -170,7 +171,7 @@ function rundb(args, cb){
     var infofile = base + '.json';
     var logfile = base + '.log';
     var info =  args;
-    info.dbconst = dbconst;
+    info.dbconst = args.dbconst;
     info.launch = 'db';
     info.dblabel = dblabel;
     info.flags = flags;
@@ -239,6 +240,7 @@ function runapp(args, cb){
   info.image = image;
   info.imagelabel = imagelabel;
   info.flags = flags;
+  info.dbconst = args.dbconst;
   fs.writeFileSync(infofile, JSON.stringify(info));
   debugOut('run app image ' + imagelabel + ' & attach monitor');
   var cmd = 'gnome-terminal --disable-factory -x bash -c "node lib/spawmon.js ' + infofile + '; read"';
@@ -272,7 +274,7 @@ function runapp(args, cb){
       }
       debugOut('imgconf: ' + imgconf);
       debugOut('imgip: ' + imgip);
-      debugOut('imgport: ' + imgport); // enchancement: look for more ports to try or get specifics from the user
+      debugOut('imgport: ' + imgport); // enchancement: look for more ports to try or get specifics from the conf
 
       waitReady(imgip, imgport, 60, function(res){
       if (!res) return cb(new Error('Timed out while waiting for image'))
@@ -291,10 +293,25 @@ function runapp(args, cb){
 function runtest(args, cb){
   console.log();
   console.log('run test');
-  debugOut('use db info');
-  debugOut('use app info');
-  debugOut('attach monitor to test');
-  debugOut('run test');
+  // pop a new terminal(gnome-terminal)
+  var base = 'temp/test';
+  var infofile = base + '.json';
+  var logfile = base + '.log';
+  var info =  args;
+  info.launch = 'test';
+  info.dbcontainer = args.dbcontainer;
+  info.imgcontainer = args.imgcontainer;
+  info.flags = flags;
+  info.app = app;
+  fs.writeFileSync(infofile, JSON.stringify(info));
+  debugOut('run test & attach monitor');
+  var cmd = 'gnome-terminal --disable-factory -x bash -c "node lib/spawmon.js ' + infofile + '; read"';
+  debugOut('cmd: ' + cmd);
+  var term = proc.exec(cmd, function(err, stdout, stderr){
+    debugOut(term.pid + '-err: ' + err);
+    debugOut(term.pid + '-stdout: ' + stdout);
+    debugOut(term.pid + '-stderr: ' + stderr);
+  });
   cb();
 }
 
@@ -306,7 +323,7 @@ function monitor(args, cb){
   setTimeout(function() {
     debugOut('monitors-down');
     cb();
-  }, 3000);
+  }, 30000);
 }
 
 function summarize(){

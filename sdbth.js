@@ -8,12 +8,21 @@ var fs     = require('fs');
 var proc   = require('child_process');
 
 var rimraf = require('rimraf');
+var dbc    = require(__dirname + '/lib/check-db.js');
 
 process.on('SIGINT', function () { // TODO catch error and do same
   cleanup(function(){
     process.exit(0);
-  })
+  });
 });
+
+process.on('uncaughtException', function (err) {
+  cleanup(function(){
+    console.log('Uncaught exception: ' + err.stack);
+    process.exit(1);
+  });
+});
+
 
 // supports:
 // -dbs
@@ -68,6 +77,7 @@ cleanup(function(){
           console.log('final cleanup');
           summarize();
           console.log();
+          process.kill(process.pid, 'SIGINT'); // TODO remove
         })
       });
     });
@@ -276,6 +286,12 @@ function runapp(args, cb){
       debugOut('imgip: ' + imgip);
       debugOut('imgport: ' + imgport); // enchancement: look for more ports to try or get specifics from the conf
 
+      var target = {
+        db: args.db,
+        host: args.dbcontainer.ip,
+        port: args.dbcontainer.port,
+      }
+      dbc = dbc(target); // init
       waitReady(imgip, imgport, 60, function(res){
       if (!res) return cb(new Error('Timed out while waiting for image'))
         debugOut('ready? ' + res);
@@ -316,14 +332,33 @@ function runtest(args, cb){
 }
 
 function monitor(args, cb){
+  console.log('HERE 666')
   console.log();
   console.log('monitor');
   debugOut('monitors up');
-  debugOut('scan...');
-  setTimeout(function() {
+
+  var calls = [];
+  // async recursion!
+  var func = function(some, cb){
+    var self = this;
+    // 1 sec delay
+    setTimeout(function() {
+      // condition modifier
+      some += 1;
+      console.log(some);
+      // stop if condition met
+      if (some == 10) return cb(null, some);
+      // else call again
+      func(some, function(err, some){
+        return cb(null, some)
+      });
+    }, 1000);
+  }
+  calls.push(func.bind(null, 4));
+  async.series(calls, function(){
     debugOut('monitors-down');
-    cb();
-  }, 30000);
+    return cb();
+  });
 }
 
 function summarize(){
@@ -388,14 +423,21 @@ function waitReady(ip, port, timeout, cb){
 
     console.log('wait for response at ' + ip + ':' + port);
     async.series(calls, function(res){
+      console.log('HERE 444')
       console.log();
-      cb(res);
+        cb(res);
     })
 
   function checkIfReady(ip, port, cb){
     proc.exec('nc -v -z -w 1 ' + ip + ' ' + port, function(err, stdout, stderr){
       process.stdout.write('.');
       cb(stderr.toString().indexOf('succeed') > -1);
+
+      console.log('HERE 555')
+      if(dbc.check) dbc.check(function(err, res){
+        console.log('here')
+      });
+        cb();
     });
   }
 }

@@ -11,7 +11,7 @@ var rimraf = require('rimraf');
 var DBC    = require(__dirname + '/lib/check-db.js');
 var dbc;
 
-process.on('SIGINT', function () { // TODO catch error and do same
+process.on('SIGINT', function () {
   cleanup(function(){
     process.exit(0);
   });
@@ -97,12 +97,15 @@ function main(args, cb){
         function(next){ runapp(args, next); },
         function(next){ runtest(args, next); },
         function(next){ monitor(args, next); },
-        cleanup
+        cleanup,
+        function(next){ grabFiles(args, next); }
       ], function(err, res){
       if (err) console.log(err.stack + '\nSkip to next');
       cleanup(function(){
-        console.log('end ' + db + '-' + i);
-        cb();
+        grabFiles(args, function(){
+          console.log('end ' + db + '-' + i);
+          return cb();
+        });
       });
     })
 }
@@ -185,6 +188,7 @@ function rundb(args, cb){
     info.dbconst = args.dbconst;
     info.launch = 'db';
     info.dblabel = dblabel;
+    args.dblabel = dblabel;
     info.flags = flags;
     fs.writeFileSync(infofile, JSON.stringify(info));
     debugOut('run db image & attach monitor');
@@ -213,7 +217,7 @@ function rundb(args, cb){
         var dbip = dbconf.NetworkSettings.IPAddress;
         debugOut('dbconfIP: ' + dbip)
 
-        waitReady(dbip, dbconst.port, 60, function(res){
+        waitReady(dbip, dbconst.port, dblabel, function(res){
         if (!res) return cb(new Error('Timed out while waiting for db'))
           // sanity check
           var target = {
@@ -293,7 +297,7 @@ function runapp(args, cb){
       debugOut('imgip: ' + imgip);
       debugOut('imgport: ' + imgport); // enchancement: look for more ports to try or get specifics from the conf
 
-      waitReady(imgip, imgport, 60, function(res){
+      waitReady(imgip, imgport, imagelabel, function(res){
       if (!res) return cb(new Error('Timed out while waiting for image'))
         debugOut('ready? ' + res);
         args.imgcontainer = { // enchancement: multiple images
@@ -342,7 +346,7 @@ function monitor(args, cb){
 
   var calls = [];
   // async recursion!
-  var func = function(some, cb){
+  var func = function(cb){
     var self = this;
     // 1 sec delay
     setTimeout(function() {
@@ -357,19 +361,16 @@ function monitor(args, cb){
       debugOut('isFin: ' + isFin);
 
       if (isErr || isFin) {
-        // enchancement: err processing here
-        var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin
+        var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
         process.stdout.write(msg);
-        return cb(null, some);
+        return cb(null);
       }
 
       // else call again
-      func(some, function(err, some){
-        return cb(null, some)
-      });
+      func(cb);
     }, 1000);
   }
-  calls.push(func.bind(null, 4));
+  calls.push(func);
   async.series(calls, function(){
     console.log();
     debugOut('monitors-down');
@@ -377,18 +378,19 @@ function monitor(args, cb){
   });
 }
 
-function isEnd(end){
-  var files = fs.readdirSync(__dirname + '/log/');
-  debugOut('files: ' + util.inspect(files));
-  var filebase;
-  var extension;
-  for (var i = 0; i < files.length; i++) {
-    filebase = files[i].split('.');
-    extension = filebase[1];
-    filebase = filebase[0];
-    if (extension === end) break;
-  };
-  return (extension === end) ? filebase + '.' + extension : null;  
+function grabFiles(args, cb){
+  console.log();
+  console.log('moving logfiles');
+  var logfolder = __dirname + '/log/';
+  var folder = logfolder + args.dblabel + '/';
+  if (!fs.existsSync(folder)) fs.mkdirSync(folder);
+  _.each(fs.readdirSync(logfolder), function(file){
+    var stats = fs.statSync(logfolder + file);
+    if (stats.isFile()) {
+      fs.renameSync(logfolder + file, folder + file);
+    }
+  });
+  return cb();
 }
 
 function summarize(){
@@ -407,6 +409,20 @@ function cleanup(cb){
 
     rimraf('temp/', cb);
   });
+}
+
+function isEnd(end){
+  var files = fs.readdirSync(__dirname + '/log/');
+  debugOut('files: ' + util.inspect(files));
+  var filebase;
+  var extension;
+  for (var i = 0; i < files.length; i++) {
+    filebase = files[i].split('.');
+    extension = filebase[1];
+    filebase = filebase[0];
+    if (extension === end) break;
+  };
+  return (extension === end) ? filebase + '.' + extension : null;  
 }
 
 function waitContainer(cidfile, timeout, cb){
@@ -439,57 +455,52 @@ function waitContainer(cidfile, timeout, cb){
     }
 }
 
-// enchancement: do not use timeout, use detection of .err and .fin instead
-function waitReady(ip, port, timeout, cb){
-    var calls = [];
-    for (var i = 0; i < timeout; i++) {
-      calls.push(checkIfReady.bind(null, ip, port));
-      calls.push(function(next){
-        setTimeout(function() {
-          next();
-        }, 1000);
-      })
-    };
+function waitReady(ip, port, label, cb){
 
-    console.log('wait for response at ' + ip + ':' + port);
-    async.series(calls, function(res){
-      console.log();
-      cb(res);
-    })
+  var calls = [];
+  // async recursion!
+  var func = function(cb){
+    var self = this;
+    // 1 sec delay
+    setTimeout(function() {
+      // condition modifier
+      // - none
 
-  function checkIfReady(ip, port, cb){
+      // stop if condition met
+      checkIfOnline(ip, port, function(online){
+
+        if (online) return cb(true);
+
+        var isErr = isEnd('err');
+        debugOut('isErr: ' + isErr);
+        var isFin = isEnd('fin');
+        debugOut('isFin: ' + isFin);
+
+        if (isErr || isFin) {
+          var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
+          process.stdout.write(msg);
+          return cb(false);
+        }
+
+        // else call again
+        func(cb);
+      });
+    }, 1000);
+  }
+  calls.push(func);
+  console.log('wait for response at ' + ip + ':' + port);
+  async.series(calls, function(res){
+    console.log();
+    return cb(res);
+  });
+
+  function checkIfOnline(ip, port, cb){
     proc.exec('curl -m 1 -v --url ' + ip + ':' + port + '/', function(err, stdout, stderr){
       process.stdout.write('.');
       if (flags.debug) process.stdout.write(stdout);
       if (flags.debug) process.stdout.write(stderr);
-      cb(stderr.toString().indexOf('Accept') > -1);
+      return cb(stderr.toString().indexOf('Accept') > -1);
     });
-  }
-}
-
-function waitDBReady(ip, port, timeout, cb){
-    var calls = [];
-    for (var i = 0; i < timeout; i++) {
-      calls.push(checkIfReady.bind(null, ip, port));
-      calls.push(function(next){ 
-        setTimeout(function() {
-          next();
-        }, 1000);
-      })
-    };
-
-    console.log('wait for response at ' + ip + ':' + port);
-    async.series(calls, function(res){
-      console.log();
-      cb(res);
-    })
-
-  function checkIfReady(ip, port, cb){
-    // TODO: hide seneca err messages
-    if(dbc.check) dbc.check(function(err, res){
-      cb(res); // only break loop if success
-    });
-    else cb();
   }
 }
 

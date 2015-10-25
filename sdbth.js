@@ -47,11 +47,14 @@ var extras = [];
 var dbs = [];
 var app = {};
 
+var calls = [];
+var current = 0;
+
 // preload
 console.log('---------');
 console.log('init');
 cleanup(function(){
-  setTerminalTitle('DBT Manager')
+  setTerminalTitle('DBT Manager');
   rimraf('temp/', function() {
     rimraf('log/', function() {
       fs.mkdirSync('log/');
@@ -68,19 +71,18 @@ cleanup(function(){
         debugOut('db: ' + db + '. iterations: ' + iterations)
 
         // call each db test multiplicity times
-        var calls = [];
         for (var i = 0; i < iterations; i++) {
           calls.push(main.bind(null, {db: db, i: i}));
         };
-        // in series
-        async.series(calls, function(){
-          console.log('---------');
-          console.log('final cleanup');
-          summarize();
-          console.log();
-          process.kill(process.pid, 'SIGINT'); // TODO remove
-        })
       });
+      // in series
+      async.series(calls, function(){
+        console.log('---------');
+        console.log('final cleanup');
+        summarize();
+        console.log();
+        process.kill(process.pid, 'SIGINT'); // TODO remove
+      })
     });
   });
 });
@@ -88,6 +90,8 @@ cleanup(function(){
 function main(args, cb){
     var db = args.db;
     var i = args.i;
+    current += 1;
+    setTerminalTitle('DBT Manager (' + current + '/' + calls.length + ')');
     // main body
     console.log('---------');
     console.log('start ' + db + '-' + i);
@@ -178,6 +182,7 @@ function rundb(args, cb){
   }
 
   var dblabel = db + '--' + i;
+  args.dblabel = dblabel;
   if (!dbconst.local) {
 
     // pop a new terminal(gnome-terminal)
@@ -188,7 +193,6 @@ function rundb(args, cb){
     info.dbconst = args.dbconst;
     info.launch = 'db';
     info.dblabel = dblabel;
-    args.dblabel = dblabel;
     info.flags = flags;
     fs.writeFileSync(infofile, JSON.stringify(info));
     debugOut('run db image & attach monitor');
@@ -231,7 +235,11 @@ function rundb(args, cb){
             ip: dbip,
             port: dbconst.port
           }
-          dbc.check(cb);
+          dbc.check(function(err, res){
+            setTimeout(function() {
+              return cb(err, res);
+            }, 1000);
+          });
         });
       });
     })
@@ -361,6 +369,7 @@ function monitor(args, cb){
       debugOut('isFin: ' + isFin);
 
       if (isErr || isFin) {
+        // enchancement: list of ignored errors
         var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
         process.stdout.write(msg);
         return cb(null);
@@ -396,6 +405,37 @@ function grabFiles(args, cb){
 function summarize(){
   console.log();
   console.log('print results');
+  var logfolder = __dirname + '/log/';
+  var results = {};
+  _.each(fs.readdirSync(logfolder), function(subfolder){
+      subfolder = subfolder + '/';
+      var stats = fs.statSync(logfolder + subfolder);
+      if (stats.isDirectory()) {
+
+        // setup folder in results
+        var label = subfolder.split('--')[0];
+        if (!results[label]) results[label] = { success: 0, fail: 0 };
+        var found = false;
+
+        // iterate files
+        _.each(fs.readdirSync(logfolder + subfolder), function(file){
+          if (!found && file.split('.')[1] === 'err') found = true;
+        });
+
+        // add up
+        if (!found) results[label].success += 1;
+        else results[label].fail += 1;
+    }
+  });
+
+  // sum up
+  _.each(Object.keys(results), function(result){
+    var success = results[result].success;
+    var fail = results[result].fail;
+    var total = success + fail;
+    var percentage = ((success / total) * 100).toFixed(2);
+    console.log(result + '\t' + 'SUCCESS RATE: ' + success + ' / ' + total + ' (' + percentage + ')');
+  });
 }
 
 function cleanup(cb){

@@ -8,7 +8,8 @@ var fs     = require('fs');
 var proc   = require('child_process');
 
 var rimraf = require('rimraf');
-var dbc    = require(__dirname + '/lib/check-db.js');
+var DBC    = require(__dirname + '/lib/check-db.js');
+var dbc;
 
 process.on('SIGINT', function () { // TODO catch error and do same
   cleanup(function(){
@@ -173,7 +174,7 @@ function rundb(args, cb){
     if (err.message.indexOf('ENOENT') > -1) return cb(new Error('DB ' + db + ' is not supported'));
   }
 
-  var dblabel = db + i;
+  var dblabel = db + '--' + i;
   if (!dbconst.local) {
 
     // pop a new terminal(gnome-terminal)
@@ -214,13 +215,19 @@ function rundb(args, cb){
 
         waitReady(dbip, dbconst.port, 60, function(res){
         if (!res) return cb(new Error('Timed out while waiting for db'))
-          debugOut('ready? ' + res);
+          // sanity check
+          var target = {
+            db: db,
+            host: dbip,
+            port: dbconst.port,
+          }
+          dbc = DBC(target);
           args.dbcontainer = {
             dblabel: dblabel,
             ip: dbip,
             port: dbconst.port
           }
-          return cb();
+          dbc.check(cb);
         });
       });
     })
@@ -237,8 +244,8 @@ function runapp(args, cb){
   var image = image[0]; // TODO REPLACE WITH ITERATION
   image = image.split(' ');
   image = image[image.length - 1];
-  var imagelabel = image + i;
-  debugOut('imagelabel: ' + imagelabel)
+  var imagelabel = image + '--' + i;
+  debugOut('imagelabel: ' + imagelabel);
 
   // pop a new terminal(gnome-terminal)
   var base = 'temp/' + imagelabel;
@@ -263,7 +270,7 @@ function runapp(args, cb){
   // wait for image
   debugOut('wait for app container');
   var cidfile = 'temp/' + imagelabel + '.cid';
-  waitContainer(cidfile, 30, function(res){
+  waitContainer(cidfile, 60, function(res){
     if (!res) return cb(new Error('Image Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
     proc.exec('docker inspect ' + imagelabel + ' >temp/' + imagelabel + '.conf', function(err, stdout, stderr){
       debugOut('get app container info');
@@ -286,12 +293,6 @@ function runapp(args, cb){
       debugOut('imgip: ' + imgip);
       debugOut('imgport: ' + imgport); // enchancement: look for more ports to try or get specifics from the conf
 
-      var target = {
-        db: args.db,
-        host: args.dbcontainer.ip,
-        port: args.dbcontainer.port,
-      }
-      dbc = dbc(target); // init
       waitReady(imgip, imgport, 60, function(res){
       if (!res) return cb(new Error('Timed out while waiting for image'))
         debugOut('ready? ' + res);
@@ -300,6 +301,7 @@ function runapp(args, cb){
           ip: imgip,
           port: imgport
         }
+        flags.fb = false;
         return cb();
       });
     });
@@ -310,11 +312,13 @@ function runtest(args, cb){
   console.log();
   console.log('run test');
   // pop a new terminal(gnome-terminal)
-  var base = 'temp/test';
+  var testlabel = 'test--' + args.i;
+  var base = 'temp/' + testlabel;
   var infofile = base + '.json';
   var logfile = base + '.log';
   var info =  args;
   info.launch = 'test';
+  info.testlabel = testlabel;
   info.dbcontainer = args.dbcontainer;
   info.imgcontainer = args.imgcontainer;
   info.flags = flags;
@@ -332,7 +336,6 @@ function runtest(args, cb){
 }
 
 function monitor(args, cb){
-  console.log('HERE 666')
   console.log();
   console.log('monitor');
   debugOut('monitors up');
@@ -343,11 +346,23 @@ function monitor(args, cb){
     var self = this;
     // 1 sec delay
     setTimeout(function() {
+      process.stdout.write('.');
       // condition modifier
-      some += 1;
-      console.log(some);
+      // - none
+
       // stop if condition met
-      if (some == 10) return cb(null, some);
+      var isErr = isEnd('err');
+      debugOut('isErr: ' + isErr);
+      var isFin = isEnd('fin');
+      debugOut('isFin: ' + isFin);
+
+      if (isErr || isFin) {
+        // enchancement: err processing here
+        var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin
+        process.stdout.write(msg);
+        return cb(null, some);
+      }
+
       // else call again
       func(some, function(err, some){
         return cb(null, some)
@@ -356,9 +371,24 @@ function monitor(args, cb){
   }
   calls.push(func.bind(null, 4));
   async.series(calls, function(){
+    console.log();
     debugOut('monitors-down');
     return cb();
   });
+}
+
+function isEnd(end){
+  var files = fs.readdirSync(__dirname + '/log/');
+  debugOut('files: ' + util.inspect(files));
+  var filebase;
+  var extension;
+  for (var i = 0; i < files.length; i++) {
+    filebase = files[i].split('.');
+    extension = filebase[1];
+    filebase = filebase[0];
+    if (extension === end) break;
+  };
+  return (extension === end) ? filebase + '.' + extension : null;  
 }
 
 function summarize(){
@@ -414,6 +444,33 @@ function waitReady(ip, port, timeout, cb){
     var calls = [];
     for (var i = 0; i < timeout; i++) {
       calls.push(checkIfReady.bind(null, ip, port));
+      calls.push(function(next){
+        setTimeout(function() {
+          next();
+        }, 1000);
+      })
+    };
+
+    console.log('wait for response at ' + ip + ':' + port);
+    async.series(calls, function(res){
+      console.log();
+      cb(res);
+    })
+
+  function checkIfReady(ip, port, cb){
+    proc.exec('curl -m 1 -v --url ' + ip + ':' + port + '/', function(err, stdout, stderr){
+      process.stdout.write('.');
+      if (flags.debug) process.stdout.write(stdout);
+      if (flags.debug) process.stdout.write(stderr);
+      cb(stderr.toString().indexOf('Accept') > -1);
+    });
+  }
+}
+
+function waitDBReady(ip, port, timeout, cb){
+    var calls = [];
+    for (var i = 0; i < timeout; i++) {
+      calls.push(checkIfReady.bind(null, ip, port));
       calls.push(function(next){ 
         setTimeout(function() {
           next();
@@ -423,22 +480,16 @@ function waitReady(ip, port, timeout, cb){
 
     console.log('wait for response at ' + ip + ':' + port);
     async.series(calls, function(res){
-      console.log('HERE 444')
       console.log();
-        cb(res);
+      cb(res);
     })
 
   function checkIfReady(ip, port, cb){
-    proc.exec('nc -v -z -w 1 ' + ip + ' ' + port, function(err, stdout, stderr){
-      process.stdout.write('.');
-      cb(stderr.toString().indexOf('succeed') > -1);
-
-      console.log('HERE 555')
-      if(dbc.check) dbc.check(function(err, res){
-        console.log('here')
-      });
-        cb();
+    // TODO: hide seneca err messages
+    if(dbc.check) dbc.check(function(err, res){
+      cb(res); // only break loop if success
     });
+    else cb();
   }
 }
 

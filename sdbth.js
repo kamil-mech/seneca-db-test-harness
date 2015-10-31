@@ -435,7 +435,7 @@ function summarize(){
     var fail = results[result].fail;
     var total = success + fail;
     var percentage = ((success / total) * 100).toFixed(2);
-    console.log(result + '\t' + 'SUCCESS RATE: ' + success + ' / ' + total + ' (' + percentage + ')');
+    console.log(result + '\t' + 'SUCCESS RATE: ' + success + ' / ' + total + ' (' + percentage + '%)');
   });
 }
 

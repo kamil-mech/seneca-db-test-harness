@@ -206,6 +206,8 @@ function rundb(args, cb){
       debugOut(term.pid + '-stderr: ' + stderr);
     });
     // wait for db
+    // enchancement: when pulling image, use same logic as for -fb
+    // wait for docker container to be up
     var cidfile = 'temp/' + dblabel + '.cid';
     waitContainer(cidfile, 10, function(res){
       if (!res) return cb(new Error('DB Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
@@ -283,43 +285,49 @@ function runapp(args, cb){
   });
   // wait for image
   debugOut('wait for app container');
-  var cidfile = 'temp/' + imagelabel + '.cid';
-  waitContainer(cidfile, 10, function(res){
-    if (!res) return cb(new Error('Image Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
-    proc.exec('docker inspect ' + imagelabel + ' >temp/' + imagelabel + '.conf', function(err, stdout, stderr){
-      debugOut('get app container info');
-      var imgconf;
-      var imgip;
-      var imgport;
-      try {
-        imgconf = fs.readFileSync('temp/' + imagelabel + '.conf');
-        imgconf = JSON.parse(imgconf);
-        imgconf = imgconf[0];
-        // determine ip
-        imgip = imgconf.NetworkSettings.IPAddress;
-        // determine port
-        imgport = imgconf.Config.ExposedPorts;
-        imgport = Object.keys(imgport)[0].toString().split('/')[0];
-      } catch(err) {
-        return cb(err);
-      }
-      debugOut('imgconf: ' + imgconf);
-      debugOut('imgip: ' + imgip);
-      debugOut('imgport: ' + imgport); // enchancement: look for more ports to try or get specifics from the conf
 
-      waitReady(imgip, imgport, imagelabel, function(res){
-      if (!res) return cb(new Error('Timed out while waiting for image'))
-        debugOut('ready? ' + res);
-        args.imgcontainer = { // enchancement: multiple images
-          imagelabel: imagelabel,
-          ip: imgip,
-          port: imgport
+  waitBuilt(imagelabel, function(res){
+  if (!res) return cb(new Error('Err while building docker image'))
+
+    // wait for docker container to be up
+    var cidfile = 'temp/' + imagelabel + '.cid';
+    waitContainer(cidfile, 10, function(res){
+      if (!res) return cb(new Error('Image Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
+      proc.exec('docker inspect ' + imagelabel + ' >temp/' + imagelabel + '.conf', function(err, stdout, stderr){
+        debugOut('get app container info');
+        var imgconf;
+        var imgip;
+        var imgport;
+        try {
+          imgconf = fs.readFileSync('temp/' + imagelabel + '.conf');
+          imgconf = JSON.parse(imgconf);
+          imgconf = imgconf[0];
+          // determine ip
+          imgip = imgconf.NetworkSettings.IPAddress;
+          // determine port
+          imgport = imgconf.Config.ExposedPorts;
+          imgport = Object.keys(imgport)[0].toString().split('/')[0];
+        } catch(err) {
+          return cb(err);
         }
-        flags.fb = false;
-        return cb();
+        debugOut('imgconf: ' + imgconf);
+        debugOut('imgip: ' + imgip);
+        debugOut('imgport: ' + imgport); // enchancement: look for more ports to try or get specifics from the conf
+
+        waitReady(imgip, imgport, imagelabel, function(res){
+        if (!res) return cb(new Error('Timed out while waiting for image'))
+          debugOut('ready? ' + res);
+          args.imgcontainer = { // enchancement: multiple images
+            imagelabel: imagelabel,
+            ip: imgip,
+            port: imgport
+          }
+          flags.fb = false;
+          return cb();
+        });
       });
     });
-  })
+  });
 }
 
 function runtest(args, cb){
@@ -476,6 +484,45 @@ function isEnd(end){
   return (extension === end) ? filebase + '.' + extension : null;  
 }
 
+function waitBuilt(img, cb){
+    var calls = [];
+    // async recursion!
+    var func = function(cb){
+      var self = this;
+      // 1 sec delay
+      setTimeout(function() {
+        // condition modifier
+        // - none
+
+        // stop if condition met
+        lookForFile(__dirname + '/temp/' + img + '.fb', function(found){
+
+          if (found) return cb(true);
+
+          var isErr = isEnd('err');
+          debugOut('isErr: ' + isErr);
+          var isFin = isEnd('fin');
+          debugOut('isFin: ' + isFin);
+
+          if (isErr || isFin) {
+            var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
+            process.stdout.write(msg);
+            return cb(false);
+          }
+
+          // else call again
+          func(cb);
+        });
+      }, 1000);
+    }
+    calls.push(func);
+    console.log('wait for ' + img + ' image to be built:');
+    async.series(calls, function(res){
+      console.log();
+      return cb(res);
+    });
+}
+
 function waitContainer(cidfile, timeout, cb){
     var calls = [];
     for (var i = 0; i < timeout; i++) {
@@ -492,18 +539,18 @@ function waitContainer(cidfile, timeout, cb){
       console.log();
       cb(res);
     });
+}
 
-    function lookForFile(file, cb){
-      fs.exists(file, function(res){
-        process.stdout.write('.');
-        if (res){
-          fs.readFile(file, function(err, res){
-            if (res.length < 1) res = null;
-            cb(res);
-          });
-        } else cb(res);
+function lookForFile(file, cb){
+  fs.exists(file, function(res){
+    process.stdout.write('.');
+    if (res){
+      fs.readFile(file, function(err, res){
+        if (res.length < 1) res = null;
+        cb(res);
       });
-    }
+    } else cb(res);
+  });
 }
 
 function waitReady(ip, port, label, cb){

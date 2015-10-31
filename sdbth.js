@@ -25,17 +25,13 @@ process.on('uncaughtException', function (err) {
 });
 
 
-// supports:
+// TODO supports:
 // -dbs
 // -fd
 // -fb
 // -tu
 // -ta
-// -nt
-// -st
 // -man
-// -aer
-// -ner
 // -timg
 // -debug
 
@@ -81,7 +77,7 @@ cleanup(function(){
         console.log('final cleanup');
         summarize();
         console.log();
-        process.kill(process.pid, 'SIGINT'); // TODO remove
+        process.kill(process.pid, 'SIGINT'); // TODO remove 
       })
     });
   });
@@ -104,7 +100,10 @@ function main(args, cb){
         cleanup,
         function(next){ grabFiles(args, next); }
       ], function(err, res){
-      if (err) console.log(err.stack + '\nSkip to next');
+      if (err) {
+        console.log(err.stack + '\nSkip to next');
+        fs.writeFileSync(__dirname + '/log/dbt-manager.err', err.stack)
+      }
       cleanup(function(){
         grabFiles(args, function(){
           console.log('end ' + db + '-' + i);
@@ -166,6 +165,7 @@ function loadConf(){
   app.options = options;
 }
 
+// enchancement: send params to dbs
 function rundb(args, cb){
   var db = args.db;
   var i = args.i;
@@ -196,7 +196,7 @@ function rundb(args, cb){
     info.flags = flags;
     fs.writeFileSync(infofile, JSON.stringify(info));
     debugOut('run db image & attach monitor');
-    var cmd = 'gnome-terminal --disable-factory -x bash -c "node lib/spawmon.js ' + infofile + '; read"';
+    var cmd = 'gnome-terminal --disable-factory -x bash -c "echo GPID: $$; node lib/spawmon.js ' + infofile + '; read"';
     debugOut('cmd: ' + cmd);
     var term = proc.exec(cmd, function(err, stdout, stderr){
       debugOut(term.pid + '-err: ' + err);
@@ -205,7 +205,7 @@ function rundb(args, cb){
     });
     // wait for db
     var cidfile = 'temp/' + dblabel + '.cid';
-    waitContainer(cidfile, 30, function(res){
+    waitContainer(cidfile, 10, function(res){
       if (!res) return cb(new Error('DB Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
       proc.exec('docker inspect ' + db + ' >temp/' + dblabel + '.conf', function(err, stdout, stderr){
         debugOut('get db container info');
@@ -217,7 +217,7 @@ function rundb(args, cb){
         } catch(err) {
           return cb(err);
         }
-        debugOut('dbconf: ' + dbconf);
+        debugOut('dbconf: ' + util.inspect(dbconf));
         var dbip = dbconf.NetworkSettings.IPAddress;
         debugOut('dbconfIP: ' + dbip)
 
@@ -272,7 +272,7 @@ function runapp(args, cb){
   info.dbconst = args.dbconst;
   fs.writeFileSync(infofile, JSON.stringify(info));
   debugOut('run app image ' + imagelabel + ' & attach monitor');
-  var cmd = 'gnome-terminal --disable-factory -x bash -c "node lib/spawmon.js ' + infofile + '; read"';
+  var cmd = 'gnome-terminal --disable-factory -x bash -c "echo GPID: $$; node lib/spawmon.js ' + infofile + '; read"';
   debugOut('cmd: ' + cmd);
   var term = proc.exec(cmd, function(err, stdout, stderr){
     debugOut(term.pid + '-err: ' + err);
@@ -282,7 +282,7 @@ function runapp(args, cb){
   // wait for image
   debugOut('wait for app container');
   var cidfile = 'temp/' + imagelabel + '.cid';
-  waitContainer(cidfile, 60, function(res){
+  waitContainer(cidfile, 10, function(res){
     if (!res) return cb(new Error('Image Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
     proc.exec('docker inspect ' + imagelabel + ' >temp/' + imagelabel + '.conf', function(err, stdout, stderr){
       debugOut('get app container info');
@@ -337,7 +337,7 @@ function runtest(args, cb){
   info.app = app;
   fs.writeFileSync(infofile, JSON.stringify(info));
   debugOut('run test & attach monitor');
-  var cmd = 'gnome-terminal --disable-factory -x bash -c "node lib/spawmon.js ' + infofile + '; read"';
+  var cmd = 'gnome-terminal --disable-factory -x bash -c "echo GPID: $$; node lib/spawmon.js ' + infofile + '; read"';
   debugOut('cmd: ' + cmd);
   var term = proc.exec(cmd, function(err, stdout, stderr){
     debugOut(term.pid + '-err: ' + err);
@@ -387,6 +387,7 @@ function monitor(args, cb){
   });
 }
 
+// enchancement: success/fail folders
 function grabFiles(args, cb){
   console.log();
   console.log('moving logfiles');
@@ -438,6 +439,7 @@ function summarize(){
   });
 }
 
+// enchancement: cleanup after last run of the program
 function cleanup(cb){
   console.log();
   console.log('cleanup')
@@ -484,9 +486,9 @@ function waitContainer(cidfile, timeout, cb){
 
     function lookForFile(file, cb){
       fs.exists(file, function(res){
+        process.stdout.write('.');
         if (res){
           fs.readFile(file, function(err, res){
-            process.stdout.write('.');
             if (res.length < 1) res = null;
             cb(res);
           });

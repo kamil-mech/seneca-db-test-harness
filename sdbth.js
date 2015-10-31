@@ -67,18 +67,20 @@ cleanup(function(){
         debugOut('db: ' + db + '. iterations: ' + iterations)
 
         // call each db test multiplicity times
-        for (var i = 0; i < iterations; i++) {
+        for (var i = 0; i < iterations; i++) {;
           calls.push(main.bind(null, {db: db, i: i}));
         };
       });
       // in series
-      async.series(calls, function(){
-        console.log('---------');
-        console.log('final cleanup');
-        summarize();
-        console.log();
-        process.kill(process.pid, 'SIGINT'); // TODO remove 
-      })
+      cleanup(function(){
+        async.series(calls, function(){
+          console.log('---------');
+          console.log('final cleanup');
+          summarize();
+          console.log();
+          process.kill(process.pid, 'SIGINT'); // TODO remove 
+        });
+      });
     });
   });
 });
@@ -403,9 +405,10 @@ function grabFiles(args, cb){
   return cb();
 }
 
+// enchancement: write to readme.md
 function summarize(){
   console.log();
-  console.log('print results');
+  console.log('results:\n');
   var logfolder = __dirname + '/log/';
   var results = {};
   _.each(fs.readdirSync(logfolder), function(subfolder){
@@ -429,12 +432,18 @@ function summarize(){
     }
   });
 
+  var longest = 0;
+  _.each(Object.keys(results), function(result){
+    if (result.length > longest) longest = result.length;
+  });
+
   // sum up
   _.each(Object.keys(results), function(result){
     var success = results[result].success;
     var fail = results[result].fail;
     var total = success + fail;
     var percentage = ((success / total) * 100).toFixed(2);
+    while (result.length < longest) result = ' ' + result;
     console.log(result + '\t' + 'SUCCESS RATE: ' + success + ' / ' + total + ' (' + percentage + '%)');
   });
 }

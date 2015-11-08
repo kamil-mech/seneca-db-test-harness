@@ -1,0 +1,16 @@
+{
+  "local": false,
+  "image": "postgres",
+  "port": 5432,
+  "run": "/run/run-postgresql.sh",
+  "init": "/init/init-postgresql.sh",
+  "reads": [
+    "username",
+    "password",
+    "name",
+    "schema"
+  ],
+  "computes": [
+    "dbip"
+  ]
+}

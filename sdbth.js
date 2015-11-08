@@ -286,9 +286,14 @@ function runapp(args, cb){
   // wait for image
   debugOut('wait for app container');
 
-  waitBuilt(imagelabel, function(res){
-  if (!res) return cb(new Error('Err while building docker image'))
+  if (flags.fb) {
+    waitBuilt(imagelabel, function(res){
+    if (!res) return cb(new Error('Err while building docker image'))
+      return built(cb);
+    });
+  } else return built(cb);
 
+  function built(cb){
     // wait for docker container to be up
     var cidfile = 'temp/' + imagelabel + '.cid';
     waitContainer(cidfile, 10, function(res){
@@ -327,7 +332,7 @@ function runapp(args, cb){
         });
       });
     });
-  });
+  }
 }
 
 function runtest(args, cb){

@@ -31,6 +31,7 @@ process.on('uncaughtException', function (err) {
 // -fb
 // -tu
 // -ta
+// -nt
 // -man
 // -timg
 // -debug
@@ -337,29 +338,33 @@ function runapp(args, cb){
 
 function runtest(args, cb){
   console.log();
-  console.log('run test');
-  // pop a new terminal(gnome-terminal)
-  var testlabel = 'test--' + args.i;
-  var base = 'temp/' + testlabel;
-  var infofile = base + '.json';
-  var logfile = base + '.log';
-  var info =  args;
-  info.launch = 'test';
-  info.testlabel = testlabel;
-  info.dbcontainer = args.dbcontainer;
-  info.imgcontainer = args.imgcontainer;
-  info.flags = flags;
-  info.app = app;
-  fs.writeFileSync(infofile, JSON.stringify(info));
-  debugOut('run test & attach monitor');
-  var cmd = 'gnome-terminal --disable-factory -x bash -c "echo GPID: $$; node lib/spawmon.js ' + infofile + '; read"';
-  debugOut('cmd: ' + cmd);
-  var term = proc.exec(cmd, function(err, stdout, stderr){
-    debugOut(term.pid + '-err: ' + err);
-    debugOut(term.pid + '-stdout: ' + stdout);
-    debugOut(term.pid + '-stderr: ' + stderr);
-  });
-  cb();
+  if (flags.nt) {
+    console.log('setup complete');
+  } else {
+    console.log('run test');
+    // pop a new terminal(gnome-terminal)
+    var testlabel = 'test--' + args.i;
+    var base = 'temp/' + testlabel;
+    var infofile = base + '.json';
+    var logfile = base + '.log';
+    var info =  args;
+    info.launch = 'test';
+    info.testlabel = testlabel;
+    info.dbcontainer = args.dbcontainer;
+    info.imgcontainer = args.imgcontainer;
+    info.flags = flags;
+    info.app = app;
+    fs.writeFileSync(infofile, JSON.stringify(info));
+    debugOut('run test & attach monitor');
+    var cmd = 'gnome-terminal --disable-factory -x bash -c "echo GPID: $$; node lib/spawmon.js ' + infofile + '; read"';
+    debugOut('cmd: ' + cmd);
+    var term = proc.exec(cmd, function(err, stdout, stderr){
+      debugOut(term.pid + '-err: ' + err);
+      debugOut(term.pid + '-stdout: ' + stdout);
+      debugOut(term.pid + '-stderr: ' + stderr);
+    });
+    cb();
+  }
 }
 
 function monitor(args, cb){

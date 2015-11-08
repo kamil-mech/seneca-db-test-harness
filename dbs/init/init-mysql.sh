@@ -1,5 +1,6 @@
 #!/bin/bash
 
+echo "INIT MYSQL"
 echo "CHECKING FOR mysql COMMAND"
 mysql --version
 if [[ "$?" -gt 0 ]]; then
@@ -9,17 +10,17 @@ if [[ "$?" -gt 0 ]]; then
   exit 64
 fi
 
-SCHEMA="$1"
-USER="$2"
-PASSWORD="$3"
-NAME="$4"
+USER="$1"
+PASSWORD="$2"
+NAME="$3"
+SCHEMA="$4"
 IP="$5"
 
 echo
-echo "SCHEMA: $SCHEMA"
 echo "USER: $USER"
 echo "PASSWORD: $PASSWORD"
 echo "NAME: $NAME"
+echo "SCHEMA: $SCHEMA"
 echo "IP: $IP"
 echo
 

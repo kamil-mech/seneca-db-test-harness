@@ -25,6 +25,7 @@ process.on('uncaughtException', function (err) {
 });
 
 
+// enchancement: until-error or until-success
 // TODO supports:
 // -dbs
 // -fd
@@ -87,6 +88,7 @@ cleanup(function(){
 });
 
 function main(args, cb){
+    args = _.clone(args); // this makes sure args do not overlap between iterations
     var db = args.db;
     var i = args.i;
     current += 1;
@@ -196,19 +198,20 @@ function rundb(args, cb){
     var infofile = base + '.json';
     var logfile = base + '.log';
     var info =  args;
-    info.dbconst = args.dbconst;
+    info.dbconst = args.dbconst; // enchancement: gather all db info into one object
     info.launch = 'db';
     info.dblabel = dblabel;
     info.flags = flags;
 
-    if (db === 'mysql') {
-      var mysqlOptions = app.options['mysql-store'];
-      if (mysqlOptions) {
-        _.each(['user', 'password', 'name', 'schema'], function(field){
-          if (!mysqlOptions[field]) return cb(new Error('mysql option ' + field + ' not found in options file'));
+    // ensure init options are in options file
+    if (dbconst.init) {
+      var opts = app.options[db + '-store'];
+      if (opts) {
+        _.each(dbconst.reads, function(field){
+          if (!opts[field]) return cb(new Error(db + ' option ' + field + ' not found in options file'));
         })
-        info.dbOptions = mysqlOptions;
-      } else return cb(new Error('mysql options not found in options file'));
+        info.dbOptions = opts;
+      } else return cb(new Error(db + ' options not found in options file'));
     };
 
     fs.writeFileSync(infofile, JSON.stringify(info));
@@ -238,39 +241,46 @@ function rundb(args, cb){
         }
         debugOut('dbconf: ' + util.inspect(dbconf));
         var dbip = dbconf.NetworkSettings.IPAddress;
+        if (info.dbOptions) info.dbOptions.dbip = dbip;
         debugOut('dbconfIP: ' + dbip)
 
         waitReady(dbip, dbconst.port, dblabel, function(res){
         if (!res) return cb(new Error('Timed out while waiting for db'))
 
-          if (db === 'mysql') {
-              setTimeout(function() {
-                console.log('load schema');
-                var cp = spawn('bash', [__dirname + '/lib/init-mysql.sh', info.dbOptions.schema, info.dbOptions.user,
-                                        info.dbOptions.password, info.dbOptions.name, dbip]);
+          setTimeout(function() {
+            // run init script or proceed to sanity check
+            if (dbconst.init) { // TODO sanity check here too(resolve mysql schema preload for test entities)
+                console.log('init ' + db);
+                var cmdargs = [];
+                _.each(dbconst.reads, function(option){
+                  cmdargs.push(info.dbOptions[option]);
+                });
+                _.each(dbconst.computes, function(option){
+                  cmdargs.push(info.dbOptions[option]);
+                });
+                cmdargs.unshift(__dirname + '/dbs/' + dbconst.init);
+                var cp = spawn('bash', cmdargs);
                 cp.on('close', function (code) {
                   return cb();
                 });
-              }, 1000);
-          } else {
-            // sanity check
-            var target = {
-              db: db,
-              host: dbip,
-              port: dbconst.port,
+            } else {
+              // sanity check
+              var target = {
+                db: db,
+                host: dbip,
+                port: dbconst.port,
+              }
+              dbc = DBC(target);
+              args.dbcontainer = {
+                dblabel: dblabel,
+                ip: dbip,
+                port: dbconst.port
+              }
+              dbc.check(function(err, res){
+                  return cb(err, res);
+              });
             }
-            dbc = DBC(target);
-            args.dbcontainer = {
-              dblabel: dblabel,
-              ip: dbip,
-              port: dbconst.port
-            }
-            dbc.check(function(err, res){
-              setTimeout(function() {
-                return cb(err, res);
-              }, 1000);
-            });
-          }
+          }, 1000);
         });
       });
     });

@@ -1,0 +1,5 @@
+{
+  "local": false,
+  "image": "mysql",
+  "port": 3306
+}

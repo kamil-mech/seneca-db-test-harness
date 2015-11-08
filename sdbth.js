@@ -116,6 +116,9 @@ function main(args, cb){
     })
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------------------------------------
 
 function processArgs(){
   console.log();
@@ -197,6 +200,17 @@ function rundb(args, cb){
     info.launch = 'db';
     info.dblabel = dblabel;
     info.flags = flags;
+
+    if (db === 'mysql') {
+      var mysqlOptions = app.options['mysql-store'];
+      if (mysqlOptions) {
+        _.each(['user', 'password', 'name', 'schema'], function(field){
+          if (!mysqlOptions[field]) return cb(new Error('mysql option ' + field + ' not found in options file'));
+        })
+        info.dbOptions = mysqlOptions;
+      } else return cb(new Error('mysql options not found in options file'));
+    };
+
     fs.writeFileSync(infofile, JSON.stringify(info));
     debugOut('run db image & attach monitor');
     var cmd = 'gnome-terminal --disable-factory -x bash -c "echo GPID: $$; node lib/spawmon.js ' + infofile + '; read"';
@@ -228,26 +242,38 @@ function rundb(args, cb){
 
         waitReady(dbip, dbconst.port, dblabel, function(res){
         if (!res) return cb(new Error('Timed out while waiting for db'))
-          // sanity check
-          var target = {
-            db: db,
-            host: dbip,
-            port: dbconst.port,
+
+          if (db === 'mysql') {
+              setTimeout(function() {
+                console.log('load schema');
+                var cp = spawn('bash', [__dirname + '/lib/init-mysql.sh', info.dbOptions.schema, info.dbOptions.user,
+                                        info.dbOptions.password, info.dbOptions.name, dbip]);
+                cp.on('close', function (code) {
+                  return cb();
+                });
+              }, 1000);
+          } else {
+            // sanity check
+            var target = {
+              db: db,
+              host: dbip,
+              port: dbconst.port,
+            }
+            dbc = DBC(target);
+            args.dbcontainer = {
+              dblabel: dblabel,
+              ip: dbip,
+              port: dbconst.port
+            }
+            dbc.check(function(err, res){
+              setTimeout(function() {
+                return cb(err, res);
+              }, 1000);
+            });
           }
-          dbc = DBC(target);
-          args.dbcontainer = {
-            dblabel: dblabel,
-            ip: dbip,
-            port: dbconst.port
-          }
-          dbc.check(function(err, res){
-            setTimeout(function() {
-              return cb(err, res);
-            }, 1000);
-          });
         });
       });
-    })
+    });
   } else return cb();
 }
 
@@ -620,4 +646,21 @@ function setTerminalTitle(title) {
   process.stdout.write(
     String.fromCharCode(27) + "]0;" + title + String.fromCharCode(7)
   );
+}
+
+function spawn(cmd, args){
+  console.log();
+  console.log('running ' + cmd + ' ' + args)
+  console.log();
+  var cp = proc.spawn(cmd, args);
+  cp.stdout.on('data', function (data) {
+    process.stdout.write(data);
+  });
+  cp.stderr.on('data', function (data) {
+    process.stdout.write(data);
+  });
+  cp.on('close', function (code) {
+    console.log('child process exited with code ' + code);
+  });
+  return cp;
 }

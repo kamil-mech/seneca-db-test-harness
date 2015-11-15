@@ -355,6 +355,7 @@ function runapp(args, cb){
         debugOut('imgconf: ' + imgconf);
         debugOut('imgip: ' + imgip);
         debugOut('imgport: ' + imgport); // enchancement: look for more ports to try or get specifics from the conf
+        flags.fb = false;
 
         waitReady(imgip, imgport, imagelabel, function(res){
         if (!res) return cb(new Error('Timed out while waiting for image'))
@@ -364,7 +365,6 @@ function runapp(args, cb){
             ip: imgip,
             port: imgport
           }
-          flags.fb = false;
           return cb();
         });
       });

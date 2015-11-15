@@ -248,6 +248,11 @@ function rundb(args, cb){
         if (!res) return cb(new Error('Timed out while waiting for db'))
 
           setTimeout(function() {
+            args.dbcontainer = {
+              dblabel: dblabel,
+              ip: dbip,
+              port: dbconst.port
+            }
             // run init script or proceed to sanity check
             if (dbconst.init) { // TODO sanity check here too(resolve mysql schema preload for test entities)
                 console.log('init ' + db);
@@ -271,11 +276,6 @@ function rundb(args, cb){
                 port: dbconst.port,
               }
               dbc = DBC(target);
-              args.dbcontainer = {
-                dblabel: dblabel,
-                ip: dbip,
-                port: dbconst.port
-              }
               dbc.check(function(err, res){
                   return cb(err, res);
               });

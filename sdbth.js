@@ -443,7 +443,6 @@ function monitor(args, cb){
   });
 }
 
-// enchancement: success/fail folders
 function grabFiles(args, cb){
   console.log();
   console.log('moving logfiles');
@@ -459,31 +458,39 @@ function grabFiles(args, cb){
   return cb();
 }
 
-// enchancement: write to readme.md
 function summarize(){
   console.log();
   console.log('results:\n');
   var logfolder = __dirname + '/log/';
+  fs.mkdirSync(logfolder + '/fail/');
+  fs.mkdirSync(logfolder + '/success/');
+
   var results = {};
   _.each(fs.readdirSync(logfolder), function(subfolder){
       subfolder = subfolder + '/';
-      var stats = fs.statSync(logfolder + subfolder);
-      if (stats.isDirectory()) {
 
-        // setup folder in results
-        var label = subfolder.split('--')[0];
-        if (!results[label]) results[label] = { success: 0, fail: 0 };
-        var found = false;
+      if (!(subfolder === 'fail/' || subfolder == 'success/')) {
+        var stats = fs.statSync(logfolder + subfolder);
+        if (stats.isDirectory()) {
 
-        // iterate files
-        _.each(fs.readdirSync(logfolder + subfolder), function(file){
-          if (!found && file.split('.')[1] === 'err') found = true;
-        });
+          // setup folder in results
+          var label = subfolder.split('--')[0];
+          if (!results[label]) results[label] = { success: 0, fail: 0 };
+          var found = false;
 
-        // add up
-        if (!found) results[label].success += 1;
-        else results[label].fail += 1;
-    }
+          // iterate files
+          _.each(fs.readdirSync(logfolder + subfolder), function(file){
+            if (!found && file.split('.')[1] === 'err') found = true;
+          });
+
+          // add up
+          if (!found) results[label].success += 1;
+          else results[label].fail += 1;
+
+          var destinationFolder = found ? '/fail/' : '/success/';
+          fs.renameSync(logfolder + subfolder, logfolder + destinationFolder + subfolder);
+        }
+      }
   });
 
   var longest = 0;
@@ -492,14 +499,19 @@ function summarize(){
   });
 
   // sum up
+  var resultStr = '';
   _.each(Object.keys(results), function(result){
     var success = results[result].success;
     var fail = results[result].fail;
     var total = success + fail;
     var percentage = ((success / total) * 100).toFixed(2);
     while (result.length < longest) result = ' ' + result;
-    console.log(result + '\t' + 'SUCCESS RATE: ' + success + ' / ' + total + ' (' + percentage + '%)');
+    result += '\t' + 'SUCCESS RATE: ' + success + ' / ' + total + ' (' + percentage + '%)\n';
+    resultStr += result;
   });
+  console.log(resultStr);
+  resultStr = 'results:\n\n' + resultStr;
+  fs.writeFileSync(logfolder + 'readme.md', resultStr);
 }
 
 // enchancement: cleanup after last run of the program

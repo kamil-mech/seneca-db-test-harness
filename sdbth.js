@@ -125,6 +125,8 @@ function main(args, cb){
 // ----------------------------------------------------------------------------------------------------------------------------------------
 // ----------------------------------------------------------------------------------------------------------------------------------------
 
+
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function processArgs(){
   console.log();
   console.log('process args');
@@ -155,6 +157,7 @@ function processArgs(){
   debugOut('dbs: ' + dbs);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function loadConf(){
   console.log();
   console.log('get conf from file');
@@ -177,6 +180,7 @@ function loadConf(){
 }
 
 // enchancement: send params to dbs
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function rundb(args, cb){
   var db = args.db;
   var i = args.i;
@@ -300,6 +304,7 @@ function rundb(args, cb){
   }
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function runapp(args, cb){
   var db = args.db;
   var i = args.i;
@@ -385,6 +390,7 @@ function runapp(args, cb){
   }
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function runtest(args, cb){
   console.log();
   if (flags.nt) {
@@ -416,6 +422,7 @@ function runtest(args, cb){
   }
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function monitor(args, cb){
   asyncRecurse(init, modifier, check, function(){
     debugOut('monitors-down');
@@ -450,6 +457,7 @@ function monitor(args, cb){
   }
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function grabFiles(args, cb){
   console.log();
   console.log('moving logfiles');
@@ -465,6 +473,7 @@ function grabFiles(args, cb){
   return cb();
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function summarize(){
   console.log();
   console.log('results:\n');
@@ -523,6 +532,7 @@ function summarize(){
 
 // enchancement: cleanup after last run of the program
 // TODO fix: when app does fin, test is hanging
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function cleanup(cb){
   console.log();
   console.log('cleanup')
@@ -550,6 +560,7 @@ function cleanup(cb){
   });
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function isEnd(end){
   var files = fs.readdirSync(__dirname + '/log/');
   debugOut('files: ' + util.inspect(files));
@@ -564,6 +575,7 @@ function isEnd(end){
   return (extension === end) ? filebase + '.' + extension : null;  
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function waitBuilt(img, cb){
   asyncRecurse(init, modifier, check, cb);
 
@@ -596,6 +608,7 @@ function waitBuilt(img, cb){
 }
 
 // enchancement abstract the async recursion as majority repeats alot
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function waitPulled(img, cb){
   asyncRecurse(init, modifier, check, cb);
 
@@ -627,6 +640,7 @@ function waitPulled(img, cb){
   }
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function asyncRecurse(init, modifier, check, cb){
   // async recursion!
   var func = function(cb){
@@ -656,6 +670,7 @@ function asyncRecurse(init, modifier, check, cb){
   });
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function waitContainer(cidfile, timeout, cb){
     var calls = [];
     for (var i = 0; i < timeout; i++) {
@@ -674,6 +689,7 @@ function waitContainer(cidfile, timeout, cb){
     });
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function lookForFile(file, cb){
   fs.exists(file, function(res){
     process.stdout.write('.');
@@ -686,6 +702,7 @@ function lookForFile(file, cb){
   });
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function waitReady(ip, port, label, cb){
   asyncRecurse(init, modifier, check, cb);
 
@@ -726,16 +743,19 @@ function waitReady(ip, port, label, cb){
   }
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function debugOut(msg){
   if (flags.debug) console.log(msg);
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function setTerminalTitle(title) {
   process.stdout.write(
     String.fromCharCode(27) + "]0;" + title + String.fromCharCode(7)
   );
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 function spawn(cmd, args){
   console.log();
   console.log('running ' + cmd + ' ' + args)

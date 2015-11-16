@@ -11,6 +11,8 @@ var rimraf = require('rimraf');
 var DBC    = require(__dirname + '/lib/check-db.js');
 var dbc;
 
+var cleanedOnce = false; // if cleaned at least once. Used for not spamming for sudo requests
+
 process.on('SIGINT', function () {
   cleanup(function(){
     process.exit(0);
@@ -34,6 +36,7 @@ process.on('uncaughtException', function (err) {
 // -ta
 // -nt
 // -man
+// -cln <-- requires sudo
 // -timg
 // -debug
 
@@ -524,7 +527,21 @@ function cleanup(cb){
     debugOut('cln-stdout: ' + stdout);
     debugOut('cln-stderr: ' + stderr);
 
-    rimraf('temp/', cb);
+    rimraf('temp/', function(){
+      if (flags.cln) {
+        if (!cleanedOnce) {
+          console.log('sudo password required to erase docker bloat');
+          cleanedOnce = true;
+        }
+        proc.exec('bash -e lib/clean-docker.sh ' + process.pid, function(err, stdout, stderr){
+          debugOut('cln-err: ' + err);
+          debugOut('cln-stdout: ' + stdout);
+          debugOut('cln-stderr: ' + stderr);
+
+          return cb();
+        });
+      } else return cb();
+    });
   });
 }
 

@@ -226,8 +226,17 @@ function rundb(args, cb){
       debugOut(term.pid + '-stdout: ' + stdout);
       debugOut(term.pid + '-stderr: ' + stderr);
     });
+
     // wait for db
-    // enchancement: when pulling image, use same logic as for -fb
+    if (flags.fd) {
+      waitPulled(dblabel, function(res){
+      if (!res) return cb(new Error('Err while pulling docker image'))
+        return pulled(cb);
+      });
+    } else return pulled(cb);
+  } else return cb();
+
+  function pulled(cb){
     // wait for docker container to be up
     var cidfile = 'temp/' + dblabel + '.cid';
     waitContainer(cidfile, 10, function(res){
@@ -247,6 +256,7 @@ function rundb(args, cb){
         if (info.dbOptions) info.dbOptions.dbip = dbip;
         debugOut('dbconfIP: ' + dbip)
 
+        flags.fd = false; // echancement: register which are pulled and which are not
         waitReady(dbip, dbconst.port, dblabel, function(res){
         if (!res) return cb(new Error('Timed out while waiting for db'))
 
@@ -287,7 +297,7 @@ function rundb(args, cb){
         });
       });
     });
-  } else return cb();
+  }
 }
 
 function runapp(args, cb){
@@ -592,6 +602,46 @@ function waitBuilt(img, cb){
     }
     calls.push(func);
     console.log('wait for ' + img + ' image to be built:');
+    async.series(calls, function(res){
+      console.log();
+      return cb(res);
+    });
+}
+
+// enchancement abstract the async recursion as majority repeats alot
+function waitPulled(img, cb){
+    var calls = [];
+    // async recursion!
+    var func = function(cb){
+      var self = this;
+      // 1 sec delay
+      setTimeout(function() {
+        // condition modifier
+        // - none
+
+        // stop if condition met
+        lookForFile(__dirname + '/temp/' + img + '.fd', function(found){
+
+          if (found) return cb(true);
+
+          var isErr = isEnd('err');
+          debugOut('isErr: ' + isErr);
+          var isFin = isEnd('fin');
+          debugOut('isFin: ' + isFin);
+
+          if (isErr || isFin) {
+            var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
+            process.stdout.write(msg);
+            return cb(false);
+          }
+
+          // else call again
+          func(cb);
+        });
+      }, 1000);
+    }
+    calls.push(func);
+    console.log('wait for ' + img + ' image to be pulled:');
     async.series(calls, function(res){
       console.log();
       return cb(res);

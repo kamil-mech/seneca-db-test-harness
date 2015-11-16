@@ -417,43 +417,37 @@ function runtest(args, cb){
 }
 
 function monitor(args, cb){
-  console.log();
-  console.log('monitor');
-  debugOut('monitors up');
-
-  var calls = [];
-  // async recursion!
-  var func = function(cb){
-    var self = this;
-    // 1 sec delay
-    setTimeout(function() {
-      process.stdout.write('.');
-      // condition modifier
-      // - none
-
-      // stop if condition met
-      var isErr = isEnd('err');
-      debugOut('isErr: ' + isErr);
-      var isFin = isEnd('fin');
-      debugOut('isFin: ' + isFin);
-
-      if (isErr || isFin) {
-        // enchancement: list of ignored errors
-        var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
-        process.stdout.write(msg);
-        return cb(null);
-      }
-
-      // else call again
-      func(cb);
-    }, 1000);
-  }
-  calls.push(func);
-  async.series(calls, function(){
-    console.log();
+  asyncRecurse(init, modifier, check, function(){
     debugOut('monitors-down');
     return cb();
   });
+
+  function init(cb){
+    console.log();
+    console.log('monitor');
+    debugOut('monitors up');
+    return cb();
+  }
+  function modifier(cb){
+    return cb();
+  }
+  function check(cb){
+    process.stdout.write('.');
+    
+    var isErr = isEnd('err');
+    debugOut('isErr: ' + isErr);
+    var isFin = isEnd('fin');
+    debugOut('isFin: ' + isFin);
+
+    if (isErr || isFin) {
+      // enchancement: list of ignored errors
+      var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
+      process.stdout.write(msg);
+      return cb(true); // needed to terminate recursion
+    }
+
+    return cb(false) // needed to continue recursion
+  }
 }
 
 function grabFiles(args, cb){
@@ -528,6 +522,7 @@ function summarize(){
 }
 
 // enchancement: cleanup after last run of the program
+// TODO fix: when app does fin, test is hanging
 function cleanup(cb){
   console.log();
   console.log('cleanup')
@@ -570,82 +565,95 @@ function isEnd(end){
 }
 
 function waitBuilt(img, cb){
-    var calls = [];
-    // async recursion!
-    var func = function(cb){
-      var self = this;
-      // 1 sec delay
-      setTimeout(function() {
-        // condition modifier
-        // - none
+  asyncRecurse(init, modifier, check, cb);
 
-        // stop if condition met
-        lookForFile(__dirname + '/temp/' + img + '.fb', function(found){
-
-          if (found) return cb(true);
-
-          var isErr = isEnd('err');
-          debugOut('isErr: ' + isErr);
-          var isFin = isEnd('fin');
-          debugOut('isFin: ' + isFin);
-
-          if (isErr || isFin) {
-            var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
-            process.stdout.write(msg);
-            return cb(false);
-          }
-
-          // else call again
-          func(cb);
-        });
-      }, 1000);
-    }
-    calls.push(func);
+  function init(cb){
     console.log('wait for ' + img + ' image to be built:');
-    async.series(calls, function(res){
-      console.log();
-      return cb(res);
+    return cb();
+  }
+  function modifier(cb){
+    return cb();
+  }
+  function check(cb){
+    lookForFile(__dirname + '/temp/' + img + '.fb', function(found){
+
+      if (found) return cb(true, true); // first true signals end of recursion, second is just data that is returned
+
+      var isErr = isEnd('err');
+      debugOut('isErr: ' + isErr);
+      var isFin = isEnd('fin');
+      debugOut('isFin: ' + isFin);
+
+      if (isErr || isFin) {
+        var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
+        process.stdout.write(msg);
+        return cb(true, false);
+      }
+
+      return cb(false); // needed to continue recursion
     });
+  }
 }
 
 // enchancement abstract the async recursion as majority repeats alot
 function waitPulled(img, cb){
-    var calls = [];
-    // async recursion!
-    var func = function(cb){
-      var self = this;
-      // 1 sec delay
-      setTimeout(function() {
-        // condition modifier
-        // - none
+  asyncRecurse(init, modifier, check, cb);
 
+  function init(cb){
+    console.log('wait for ' + img + ' image to be pulled:');
+    return cb();
+  }
+  function modifier(cb){
+    return cb();
+  }
+  function check(cb){
+    lookForFile(__dirname + '/temp/' + img + '.fd', function(found){
+
+      if (found) return cb(true, true); // first true signals end of recursion, second is just data that is returned
+
+      var isErr = isEnd('err');
+      debugOut('isErr: ' + isErr);
+      var isFin = isEnd('fin');
+      debugOut('isFin: ' + isFin);
+
+      if (isErr || isFin) {
+        var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
+        process.stdout.write(msg);
+        return cb(true, false);
+      }
+
+      return cb(false); // needed to continue recursion
+    });
+  }
+}
+
+function asyncRecurse(init, modifier, check, cb){
+  // async recursion!
+  var func = function(cb){
+    var self = this;
+    // 1 sec delay
+    setTimeout(function() {
+      // condition modifier
+      modifier(function(){
         // stop if condition met
-        lookForFile(__dirname + '/temp/' + img + '.fd', function(found){
-
-          if (found) return cb(true);
-
-          var isErr = isEnd('err');
-          debugOut('isErr: ' + isErr);
-          var isFin = isEnd('fin');
-          debugOut('isFin: ' + isFin);
-
-          if (isErr || isFin) {
-            var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
-            process.stdout.write(msg);
-            return cb(false);
-          }
+        check(function(finished, res){
+           if (finished) return cb(res);
 
           // else call again
           func(cb);
         });
-      }, 1000);
-    }
-    calls.push(func);
-    console.log('wait for ' + img + ' image to be pulled:');
-    async.series(calls, function(res){
+      });
+    }, 1000);
+  }
+
+  // instructions before
+  init(function(){
+    // first call
+    func(function(res){
       console.log();
-      return cb(res);
+      return cb(res); // instructions after can be applied on callback
     });
+  });
 }
 
 function waitContainer(cidfile, timeout, cb){
@@ -679,43 +687,34 @@ function lookForFile(file, cb){
 }
 
 function waitReady(ip, port, label, cb){
+  asyncRecurse(init, modifier, check, cb);
 
-  var calls = [];
-  // async recursion!
-  var func = function(cb){
-    var self = this;
-    // 1 sec delay
-    setTimeout(function() {
-      // condition modifier
-      // - none
-
-      // stop if condition met
-      checkIfOnline(ip, port, function(online){
-
-        if (online) return cb(true);
-
-        var isErr = isEnd('err');
-        debugOut('isErr: ' + isErr);
-        var isFin = isEnd('fin');
-        debugOut('isFin: ' + isFin);
-
-        if (isErr || isFin) {
-          var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
-          process.stdout.write(msg);
-          return cb(false);
-        }
-
-        // else call again
-        func(cb);
-      });
-    }, 1000);
+  function init(cb){
+    console.log('wait for response at ' + ip + ':' + port);
+    return cb();
   }
-  calls.push(func);
-  console.log('wait for response at ' + ip + ':' + port);
-  async.series(calls, function(res){
-    console.log();
-    return cb(res);
-  });
+  function modifier(cb){
+    return cb();
+  }
+  function check(cb){
+    checkIfOnline(ip, port, function(online){
+
+      if (online) return cb(true, true); // first true signals end of recursion, second is just data that is returned
+
+      var isErr = isEnd('err');
+      debugOut('isErr: ' + isErr);
+      var isFin = isEnd('fin');
+      debugOut('isFin: ' + isFin);
+
+      if (isErr || isFin) {
+        var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
+        process.stdout.write(msg);
+        return cb(true, false);
+      }
+
+      return cb(false); // needed to continue recursion
+    });
+  }
 
   function checkIfOnline(ip, port, cb){
     proc.exec('curl -m 1 -v --url ' + ip + ':' + port + '/', function(err, stdout, stderr){

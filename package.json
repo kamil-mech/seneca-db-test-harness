@@ -1,11 +1,9 @@
 {
   "name": "seneca-db-test-harness",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "Automates the process of testing various DBs against seneca applications",
   "main": "",
   "scripts": {
-      "test": "bash ./init.sh",
-      "smoke": "./node_modules/.bin/mocha dbt/util/smoke-test.js"
     },
   "repository": {
     "type": "git",
@@ -15,20 +13,21 @@
   "license": "MIT",
   "dependencies": {
     "lodash": "2.4.1",
-    "optimist": "0.6.1",
-    "seneca": "0.6.5",
+    "async": "0.9.0",
+    "docker-cmd": "0.2.2",
+    "rimraf": "2.4.3",
+    "seneca": "0.8.0",
+    "seneca-user": "0.2.10",
     "seneca-mongo-store": "0.2.0",
     "seneca-jsonfile-store": "0.2.2",
-    "seneca-level-store": "0.2.1",
     "seneca-cassandra-store": "0.0.1",
+    "seneca-level-store": "0.2.3",
     "seneca-couchdb-store": "0.0.2",
     "seneca-orient-store": "1.0.1",
     "seneca-rethink-store": "0.0.1",
     "seneca-redis-store": "0.0.8",
     "seneca-mysql-store": "0.4.0",
     "seneca-memcached-cache": "0.2.0",
-    "seneca-postgresql-store": "0.6.0",
-    "mocha": "2.1.0",
-    "seneca-user": "0.2.10"
+    "seneca-postgresql-store": "0.7.0"
   }
 }

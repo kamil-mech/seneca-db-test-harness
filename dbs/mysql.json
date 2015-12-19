@@ -1,0 +1,16 @@
+{
+  "local": false,
+  "image": "mysql",
+  "port": 3306,
+  "run": "/run/run-mysql.sh",
+  "init": "/init/init-mysql.sh",
+  "reads": [
+    "user",
+    "password",
+    "name",
+    "schema"
+  ],
+  "computes": [
+    "dbip"
+  ]
+}

@@ -29,6 +29,7 @@ process.on('uncaughtException', function (err) {
 
 // enchancement: until-error or until-success
 // TODO supports:
+// To add new flag functionality just add an if (flags.flag) and use it straight away
 // -dbs
 // -fd
 // -fb
@@ -37,6 +38,7 @@ process.on('uncaughtException', function (err) {
 // -nt
 // -man
 // -cln <-- requires sudo
+// -nm // no monitor, runs tests but doesnt terminate
 // -timg
 // -debug
 
@@ -424,11 +426,16 @@ function runtest(args, cb){
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 function monitor(args, cb){
-  asyncRecurse(init, modifier, check, function(){
-    debugOut('monitors-down');
-    return cb();
-  });
-
+  console.log();
+  if (flags.nm) {
+    console.log('setup complete');
+  } else {
+    asyncRecurse(init, modifier, check, function(){
+      debugOut('monitors-down');
+      return cb();
+    });
+  }
+  
   function init(cb){
     console.log();
     console.log('monitor');
@@ -607,7 +614,6 @@ function waitBuilt(img, cb){
   }
 }
 
-// enchancement abstract the async recursion as majority repeats alot
 // ----------------------------------------------------------------------------------------------------------------------------------------
 function waitPulled(img, cb){
   asyncRecurse(init, modifier, check, cb);

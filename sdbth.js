@@ -1,6 +1,5 @@
 "use strict";
 
-// remember to error check everything for failure points. Also suggest solutions
 var util   = require('util');
 var _      = require('lodash');
 var async  = require('async');
@@ -25,22 +24,6 @@ process.on('uncaughtException', function (err) {
     process.exit(1);
   });
 });
-
-
-// enchancement: until-error or until-success
-// TODO supports:
-// To add new flag functionality just add an if (flags.flag) and use it straight away
-// -dbs
-// -fd
-// -fb
-// -tu
-// -ta
-// -nt
-// -man
-// -cln <-- requires sudo
-// -nm // no monitor, runs tests but doesnt terminate
-// -timg
-// -debug
 
 var gargs = process.argv;
 gargs.shift();
@@ -67,7 +50,7 @@ cleanup(function(){
       // iterations
       _.each(dbs, function(db){
         var iterations = 1;
-        var more = db.split('-')[1]; // enchacement: more = last based on split array length
+        var more = db.split('-')[1];
         if (more) iterations = parseInt(more);
         if (iterations.toString() === 'NaN') throw new Error('invalid multipicity syntax at ' + db)
         db = db.split('-')[0];
@@ -93,7 +76,6 @@ cleanup(function(){
 });
 
 function main(args, cb){
-    args = _.clone(args); // this makes sure args do not overlap between iterations
     var db = args.db;
     var i = args.i;
     current += 1;
@@ -181,7 +163,6 @@ function loadConf(){
   app.options = options;
 }
 
-// enchancement: send params to dbs
 // ----------------------------------------------------------------------------------------------------------------------------------------
 function rundb(args, cb){
   var db = args.db;
@@ -207,7 +188,7 @@ function rundb(args, cb){
     var infofile = base + '.json';
     var logfile = base + '.log';
     var info =  args;
-    info.dbconst = args.dbconst; // enchancement: gather all db info into one object
+    info.dbconst = args.dbconst;
     info.launch = 'db';
     info.dblabel = dblabel;
     info.flags = flags;
@@ -262,7 +243,7 @@ function rundb(args, cb){
         if (info.dbOptions) info.dbOptions.dbip = dbip;
         debugOut('dbconfIP: ' + dbip)
 
-        flags.fd = false; // echancement: register which are pulled and which are not
+        flags.fd = false;
         waitReady(dbip, dbconst.port, dblabel, function(res){
         if (!res) return cb(new Error('Timed out while waiting for db'))
 
@@ -273,7 +254,7 @@ function rundb(args, cb){
               port: dbconst.port
             }
             // run init script or proceed to sanity check
-            if (dbconst.init) { // TODO sanity check here too(resolve mysql schema preload for test entities)
+            if (dbconst.init) {
                 console.log('init ' + db);
                 var cmdargs = [];
                 _.each(dbconst.reads, function(option){
@@ -314,7 +295,7 @@ function runapp(args, cb){
   console.log('run app');
 
   var image = app.options.dbt.dockimages;
-  var image = image[0]; // TODO REPLACE WITH ITERATION
+  var image = image[0];
   image = image.split(' ');
   image = image[image.length - 1];
   var imagelabel = image + '--' + i;
@@ -374,13 +355,13 @@ function runapp(args, cb){
         }
         debugOut('imgconf: ' + imgconf);
         debugOut('imgip: ' + imgip);
-        debugOut('imgport: ' + imgport); // enchancement: look for more ports to try or get specifics from the conf
+        debugOut('imgport: ' + imgport);
         flags.fb = false;
 
         waitReady(imgip, imgport, imagelabel, function(res){
         if (!res) return cb(new Error('Timed out while waiting for image'))
           debugOut('ready? ' + res);
-          args.imgcontainer = { // enchancement: multiple images
+          args.imgcontainer = {
             imagelabel: imagelabel,
             ip: imgip,
             port: imgport
@@ -454,7 +435,6 @@ function monitor(args, cb){
     debugOut('isFin: ' + isFin);
 
     if (isErr || isFin) {
-      // enchancement: list of ignored errors
       var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
       process.stdout.write(msg);
       return cb(true); // needed to terminate recursion
@@ -537,8 +517,6 @@ function summarize(){
   fs.writeFileSync(logfolder + 'readme.md', resultStr);
 }
 
-// enchancement: cleanup after last run of the program
-// TODO fix: when app does fin, test is hanging
 // ----------------------------------------------------------------------------------------------------------------------------------------
 function cleanup(cb){
   console.log();

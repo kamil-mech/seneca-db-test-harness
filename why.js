@@ -3,7 +3,7 @@
 var fs = require('fs')
 var _ = require('lodash')
 
-// takes in a string to look for in errors and reports the amount of occurences
+// takes in a string which is a folder name in log/fail e.g. mongo--5
 var target = process.argv[2]
 var results = {}
 

@@ -183,7 +183,6 @@ function rundb(args, cb){
   args.dblabel = dblabel;
   if (!dbconst.local) {
 
-    // pop a new terminal(gnome-terminal)
     var base = 'temp/' + dblabel;
     var infofile = base + '.json';
     var logfile = base + '.log';
@@ -204,15 +203,9 @@ function rundb(args, cb){
       } else return cb(new Error(db + ' options not found in options file'));
     };
 
-    fs.writeFileSync(infofile, JSON.stringify(info));
     debugOut('run db image & attach monitor');
-    var cmd = 'gnome-terminal --disable-factory -x bash -c "echo GPID: $$; node lib/spawmon.js ' + infofile + '; read"';
-    debugOut('cmd: ' + cmd);
-    var term = proc.exec(cmd, function(err, stdout, stderr){
-      debugOut(term.pid + '-err: ' + err);
-      debugOut(term.pid + '-stdout: ' + stdout);
-      debugOut(term.pid + '-stderr: ' + stderr);
-    });
+    // pop a new terminal(gnome-terminal)
+    newWindow(infofile, info);
 
     // wait for db
     if (flags.fd) {
@@ -312,15 +305,8 @@ function runapp(args, cb){
   info.imagelabel = imagelabel;
   info.flags = flags;
   info.dbconst = args.dbconst;
-  fs.writeFileSync(infofile, JSON.stringify(info));
   debugOut('run app image ' + imagelabel + ' & attach monitor');
-  var cmd = 'gnome-terminal --disable-factory -x bash -c "echo GPID: $$; node lib/spawmon.js ' + infofile + '; read"';
-  debugOut('cmd: ' + cmd);
-  var term = proc.exec(cmd, function(err, stdout, stderr){
-    debugOut(term.pid + '-err: ' + err);
-    debugOut(term.pid + '-stdout: ' + stdout);
-    debugOut(term.pid + '-stderr: ' + stderr);
-  });
+  newWindow(infofile, info);
   // wait for image
   debugOut('wait for app container');
 
@@ -392,15 +378,8 @@ function runtest(args, cb){
     info.imgcontainer = args.imgcontainer;
     info.flags = flags;
     info.app = app;
-    fs.writeFileSync(infofile, JSON.stringify(info));
     debugOut('run test & attach monitor');
-    var cmd = 'gnome-terminal --disable-factory -x bash -c "echo GPID: $$; node lib/spawmon.js ' + infofile + '; read"';
-    debugOut('cmd: ' + cmd);
-    var term = proc.exec(cmd, function(err, stdout, stderr){
-      debugOut(term.pid + '-err: ' + err);
-      debugOut(term.pid + '-stdout: ' + stdout);
-      debugOut(term.pid + '-stderr: ' + stderr);
-    });
+    newWindow(infofile, info);
     cb();
   }
 }
@@ -737,6 +716,22 @@ function setTerminalTitle(title) {
   process.stdout.write(
     String.fromCharCode(27) + "]0;" + title + String.fromCharCode(7)
   );
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------
+function newWindow(infofile, info){
+  fs.writeFileSync(infofile, JSON.stringify(info));
+  if (flags.nw || flags.nwo) {
+    spawn('node', ['lib/spawmon.js', infofile])
+  } else {
+    var cmd = 'gnome-terminal --disable-factory -x bash -c "echo GPID: $$; node lib/spawmon.js ' + infofile + '; read"';
+    debugOut('cmd: ' + cmd);
+    var term = proc.exec(cmd, function(err, stdout, stderr){
+      debugOut(term.pid + '-err: ' + err);
+      debugOut(term.pid + '-stdout: ' + stdout);
+      debugOut(term.pid + '-stderr: ' + stderr);
+    });
+  }
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------

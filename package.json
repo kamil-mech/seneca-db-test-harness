@@ -1,6 +1,6 @@
 {
   "name": "seneca-db-test-harness",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Automates the process of testing various DBs against seneca applications",
   "main": "",
   "scripts": {

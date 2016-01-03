@@ -36,6 +36,10 @@ var app = {};
 var calls = [];
 var current = 0;
 
+var dbindices = {}
+var imgindices = {}
+var builtImages = {}
+
 // preload
 console.log('---------');
 console.log('init');
@@ -47,6 +51,7 @@ cleanup(function(){
 
       processArgs();
       loadConf();
+      
       // iterations
       _.each(dbs, function(db){
         var iterations = 1;
@@ -57,8 +62,10 @@ cleanup(function(){
         debugOut('db: ' + db + '. iterations: ' + iterations)
 
         // call each db test multiplicity times
-        for (var i = 0; i < iterations; i++) {;
-          calls.push(main.bind(null, {db: db, i: i}));
+        for (var i = 0; i < iterations; i++) {
+          if (dbindices[db] === undefined) dbindices[db] = 0;
+          else dbindices[db]++;
+          calls.push(main.bind(null, {db: db, dbIndex: dbindices[db]}));
         };
       });
       // in series
@@ -77,13 +84,14 @@ cleanup(function(){
 
 function main(args, cb){
     var db = args.db;
-    var i = args.i;
+    var dbIndex = args.dbIndex;
     current += 1;
     setTerminalTitle('DBT Manager (' + current + '/' + calls.length + ')');
     // main body
     console.log('---------');
-    console.log('start ' + db + '-' + i);
+    console.log('start ' + db + '-' + dbIndex);
     if (!fs.existsSync('temp/')) fs.mkdirSync('temp/');
+    imgindices = {} // reset counter
     async.series([
         function(next){ rundb(args, next); },
         function(next){ runapp(args, next); },
@@ -98,7 +106,7 @@ function main(args, cb){
       }
       cleanup(function(){
         grabFiles(args, function(){
-          console.log('end ' + db + '-' + i);
+          console.log('end ' + db + '-' + dbIndex);
           return cb();
         });
       });
@@ -166,7 +174,7 @@ function loadConf(){
 // ----------------------------------------------------------------------------------------------------------------------------------------
 function rundb(args, cb){
   var db = args.db;
-  var i = args.i;
+  var dbindex = args.dbIndex;
   console.log();
   console.log('run db ' + args.db);
   debugOut('load db specific constants');
@@ -179,7 +187,7 @@ function rundb(args, cb){
     if (err.message.indexOf('ENOENT') > -1) return cb(new Error('DB ' + db + ' is not supported'));
   }
 
-  var dblabel = db + '--' + i;
+  var dblabel = db + '--' + dbindex;
   args.dblabel = dblabel;
   if (!dbconst.local) {
 
@@ -283,91 +291,107 @@ function rundb(args, cb){
 // ----------------------------------------------------------------------------------------------------------------------------------------
 function runapp(args, cb){
   var db = args.db;
-  var i = args.i;
   console.log();
   console.log('run app');
 
-  var image = app.options.dbt.dockimages;
-  var image = image[0];
-  image = image.split(' ');
-  image = image[image.length - 1];
-  var imagelabel = image + '--' + i;
-  debugOut('imagelabel: ' + imagelabel);
+  var calls = [];
+  var images = app.options.dbt.dockimages;
+  var iterator = 0;
+  _.each(images, function(image){
+    calls.push(runimg.bind(null, image, iterator * 30))
+  })
+  if (!app.options.dbt.deploymode) app.options.dbt.deploymode = series;
+  if (app.options.dbt.deploymode === 'parallel' && flags.fb) return cb(new Error('Cannot deploymode: \'parallel\' and build images'));
+  async[app.options.dbt.deploymode](calls, cb)
+    
+  function runimg (image, delay, cb) {
+    setTimeout(function(){
+      var testTarget = image.testTarget;
+      image = image.name || image;
 
-  // pop a new terminal(gnome-terminal)
-  var base = 'temp/' + imagelabel;
-  var infofile = base + '.json';
-  var logfile = base + '.log';
-  var info =  args;
-  info.launch = 'app';
-  info.app = app;
-  info.image = image;
-  info.imagelabel = imagelabel;
-  info.flags = flags;
-  info.dbconst = args.dbconst;
-  debugOut('run app image ' + imagelabel + ' & attach monitor');
-  newWindow(infofile, info);
-  // wait for image
-  debugOut('wait for app container');
+      if (imgindices[image] === undefined) imgindices[image] = 0;
+      else imgindices[image]++;
+      var imagelabel = image + '--' + imgindices[image];
+      debugOut('imagelabel: ' + imagelabel);
 
-  if (flags.fb) {
-    waitBuilt(imagelabel, function(res){
-    if (!res) return cb(new Error('Err while building docker image'))
-      return built(cb);
-    });
-  } else return built(cb);
+      // pop a new terminal(gnome-terminal)
+      var base = 'temp/' + imagelabel;
+      var infofile = base + '.json';
+      var logfile = base + '.log';
+      var info =  args;
+      info.launch = 'app';
+      info.app = app;
+      info.image = image;
+      info.imagelabel = imagelabel;
+      info.flags = flags;
+      if (flags.fb && builtImages[image]) info.flags.fb = false
+      info.dbconst = args.dbconst;
+      debugOut('run app image ' + imagelabel + ' & attach monitor');
+      newWindow(infofile, info);
+      // wait for image
+      debugOut('wait for app container');
 
-  function built(cb){
-    // wait for docker container to be up
-    var cidfile = 'temp/' + imagelabel + '.cid';
-    waitContainer(cidfile, 10, function(res){
-      if (!res) return cb(new Error('Image Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
-      proc.exec('docker inspect ' + imagelabel + ' >temp/' + imagelabel + '.conf', function(err, stdout, stderr){
-        debugOut('get app container info');
-        var imgconf;
-        var imgip;
-        var imgport;
-        try {
-          imgconf = fs.readFileSync('temp/' + imagelabel + '.conf');
-          imgconf = JSON.parse(imgconf);
-          imgconf = imgconf[0];
-          // determine ip
-          imgip = imgconf.NetworkSettings.IPAddress;
-          // determine port
-          imgport = imgconf.Config.ExposedPorts;
-          imgport = Object.keys(imgport)[0].toString().split('/')[0];
-        } catch(err) {
-          return cb(err);
-        }
-        debugOut('imgconf: ' + imgconf);
-        debugOut('imgip: ' + imgip);
-        debugOut('imgport: ' + imgport);
-        flags.fb = false;
-
-        waitReady(imgip, imgport, imagelabel, function(res){
-        if (!res) return cb(new Error('Timed out while waiting for image'))
-          debugOut('ready? ' + res);
-          args.imgcontainer = {
-            imagelabel: imagelabel,
-            ip: imgip,
-            port: imgport
-          }
-          return cb();
+      if (flags.fb && !builtImages[image]) {
+        waitBuilt(imagelabel, function(res){
+        if (!res) return cb(new Error('Err while building docker image'))
+          return built(cb);
         });
-      });
-    });
+      } else return built(cb);
+
+      function built(cb){
+        // wait for docker container to be up
+        var cidfile = 'temp/' + imagelabel + '.cid';
+        waitContainer(cidfile, 10, function(res){
+          if (!res) return cb(new Error('Image Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
+          proc.exec('docker inspect ' + imagelabel + ' >temp/' + imagelabel + '.conf', function(err, stdout, stderr){
+            debugOut('get app container info');
+            var imgconf;
+            var imgip;
+            var imgport;
+            try {
+              imgconf = fs.readFileSync('temp/' + imagelabel + '.conf');
+              imgconf = JSON.parse(imgconf);
+              imgconf = imgconf[0];
+              // determine ip
+              imgip = imgconf.NetworkSettings.IPAddress;
+              // determine port
+              imgport = imgconf.Config.ExposedPorts;
+              imgport = Object.keys(imgport)[0].toString().split('/')[0];
+            } catch(err) {
+              return cb(err);
+            }
+            debugOut('imgconf: ' + imgconf);
+            debugOut('imgip: ' + imgip);
+            debugOut('imgport: ' + imgport);
+            builtImages[image] = true;
+
+            waitReady(imgip, imgport, imagelabel, function(res){
+            if (!res) return cb(new Error('Timed out while waiting for image'))
+              debugOut('ready? ' + res);
+              if (testTarget) args.imgcontainer = {
+                imagelabel: imagelabel,
+                ip: imgip,
+                port: imgport
+              }
+              return cb();
+            });
+          });
+        });
+      }
+    }, delay);
   }
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 function runtest(args, cb){
+  var testindex = 0;
   console.log();
   if (flags.nt) {
     console.log('setup complete');
   } else {
     console.log('run test');
     // pop a new terminal(gnome-terminal)
-    var testlabel = 'test--' + args.i;
+    var testlabel = 'test--' + testindex;
     var base = 'temp/' + testlabel;
     var infofile = base + '.json';
     var logfile = base + '.log';

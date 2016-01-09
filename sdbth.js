@@ -9,6 +9,7 @@ var proc = require('child_process')
 var rimraf = require('rimraf')
 var DBC = require(__dirname + '/lib/check-db.js')
 var dbc
+var terminal = require(__dirname + '/lib/terminal.js')
 
 var cleanedOnce = false // if cleaned at least once. Used for not spamming sudo requests
 
@@ -47,7 +48,7 @@ var builtImages = {}
 console.log('---------')
 console.log('init')
 cleanup(function () {
-  setTerminalTitle('DBT Manager')
+  terminal.setTitle('DBT Manager')
   rimraf('temp/', function () {
     rimraf('log/', function () {
       fs.mkdirSync('log/')
@@ -182,7 +183,7 @@ function updateTerminalTitle () {
   var progressBar = ''
   for (var i = 0; i < currentStep; i++) progressBar += '||'
   while (progressBar.length < 12) progressBar += '  '
-  setTerminalTitle('[' + progressBar + '] DBT Manager (' + current + '/' + dbtIterations.length + ') (' + failsSoFar + ' fails)')
+  terminal.setTitle('[' + progressBar + '] DBT Manager (' + current + '/' + dbtIterations.length + ') (' + failsSoFar + ' fails)')
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
@@ -686,7 +687,7 @@ function lookForFile (file, cb) {
     process.stdout.write('.')
     if (res) {
       fs.readFile(file, function (err, res) {
-        if (err) process.stdout.write() // supress lint
+        if (err) process.stdout.write('') // supress lint
         if (res.length < 1) res = null
         cb(res)
       })
@@ -726,7 +727,7 @@ function waitReady (ip, port, label, cb) {
 
   function checkIfOnline (ip, port, cb) {
     proc.exec('curl -m 1 -v --url ' + ip + ':' + port + '/', function (err, stdout, stderr) {
-      if (err) process.stdout.write() // supress lint
+      if (err) process.stdout.write('') // supress lint
       process.stdout.write('.')
       if (flags.debug) process.stdout.write(stdout)
       if (flags.debug) process.stdout.write(stderr)
@@ -741,19 +742,12 @@ function debugOut (msg) {
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
-function setTerminalTitle (title) {
-  process.stdout.write(
-    String.fromCharCode(27) + ']0' + title + String.fromCharCode(7)
-  )
-}
-
-// ----------------------------------------------------------------------------------------------------------------------------------------
 function newWindow (infofile, info) {
   fs.writeFileSync(infofile, JSON.stringify(info))
   if (flags.nw || flags.nwo) {
     spawn('node', ['lib/spawmon.js', infofile])
   } else {
-    var cmd = 'gnome-terminal --disable-factory -x bash -c "echo GPID: $$ node lib/spawmon.js ' + infofile + ' read"'
+    var cmd = 'gnome-terminal --disable-factory -x bash -c "echo GPID: $$; node lib/spawmon.js ' + infofile + '; read"'
     debugOut('cmd: ' + cmd)
     var term = proc.exec(cmd, function (err, stdout, stderr) {
       debugOut(term.pid + '-err: ' + err)

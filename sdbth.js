@@ -37,6 +37,7 @@ var conf;
 var dbtIterations = [];
 var current = 0;
 var currentStep = 0;
+var failsSoFar = 0;
 
 var dbindices = {}
 var imageindices = {}
@@ -100,10 +101,10 @@ function main(args, cb){
       function(next){ runapp(args, next); },
       showProgress,
       function(next){ runtest(args, next); },
-      showProgress,
       function(next){ monitor(args, next); },
       showProgress,
       cleanup,
+      showProgress,
       function(next){ grabFiles(args, next); }
     ], function(err, res){
     if (err) {
@@ -117,12 +118,6 @@ function main(args, cb){
       });
     });
   })
-
-  function showProgress(next){
-    currentStep++;
-    updateTerminalTitle();
-    return next();
-  }
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
@@ -178,11 +173,17 @@ function loadConf(){
   app.options = options;
 }
 
+function showProgress(next){
+  currentStep++;
+  updateTerminalTitle();
+  if (next) return next();
+}
+
 function updateTerminalTitle() {
   var progressBar = '';
   for (var i = 0; i < currentStep; i++) progressBar += '||';
-  while (progressBar.length < 8) progressBar += '  ';
-  setTerminalTitle('DBT Manager (' + current + '/' + dbtIterations.length + ') [' + progressBar + ']');
+  while (progressBar.length < 12) progressBar += '  ';
+  setTerminalTitle('[' + progressBar + '] DBT Manager (' + current + '/' + dbtIterations.length + ') (' + failsSoFar + ' fails)');
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
@@ -234,6 +235,7 @@ function rundb(args, cb){
   } else return cb();
 
   function pulled(cb){
+    showProgress();
     // wait for docker container to be up
     var cidfile = 'temp/' + args.db.label + '.cid';
     waitContainer(cidfile, 10, function(res){
@@ -276,18 +278,18 @@ function rundb(args, cb){
                 cmdargs.unshift(__dirname + '/dbs/' + dbconst.init);
                 var cp = spawn('bash', cmdargs);
                 cp.on('close', function (code) {
-                  return cb();
-                });
+                return cb();
+              });
             } else {
-              // sanity check
-              var target = {
-                db: args.db.name,
-                host: dbip,
-                port: dbconst.port,
-              }
-              dbc = DBC(target);
-              dbc.check(function(err, res){
-                  return cb(err, res);
+                // sanity check
+                var target = {
+                  db: args.db.name,
+                  host: dbip,
+                  port: dbconst.port,
+                }
+                dbc = DBC(target);
+                dbc.check(function(err, res){
+                return cb(err, res);
               });
             }
           }, 1000);
@@ -342,6 +344,7 @@ function runapp(args, cb){
       } else return built(cb);
 
       function built(cb){
+        showProgress();
         // wait for docker container to be up
         var cidfile = 'temp/' + image.label + '.cid';
         waitContainer(cidfile, 10, function(res){
@@ -443,6 +446,7 @@ function monitor(args, cb){
     debugOut('isFin: ' + isFin);
 
     if (isErr || isFin) {
+      if (isErr) failsSoFar++;
       var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin;
       process.stdout.write(msg);
       return cb(true); // needed to terminate recursion

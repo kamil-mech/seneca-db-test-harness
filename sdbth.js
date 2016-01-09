@@ -36,6 +36,7 @@ var conf;
 
 var dbtIterations = [];
 var current = 0;
+var currentStep = 0;
 
 var dbindices = {}
 var imageindices = {}
@@ -84,33 +85,44 @@ cleanup(function(){
 });
 
 function main(args, cb){
-    args.db.label = args.db.name + '--' + args.db.index;
-    current += 1;
-    setTerminalTitle('DBT Manager (' + current + '/' + dbtIterations.length + ')');
-    // main body
-    console.log('---------');
-    console.log('start ' + args.db.label);
-    if (!fs.existsSync('temp/')) fs.mkdirSync('temp/');
-    imageindices = {} // reset counter
-    async.series([
-        function(next){ rundb(args, next); },
-        function(next){ runapp(args, next); },
-        function(next){ runtest(args, next); },
-        function(next){ monitor(args, next); },
-        cleanup,
-        function(next){ grabFiles(args, next); }
-      ], function(err, res){
-      if (err) {
-        console.log(err.stack + '\nSkip to next');
-        fs.writeFileSync(__dirname + '/log/dbt-manager.err', err.stack)
-      }
-      cleanup(function(){
-        grabFiles(args, function(){
-          console.log('end ' + args.db.label);
-          return cb();
-        });
+  args.db.label = args.db.name + '--' + args.db.index;
+  current += 1;
+  currentStep = 0;
+  updateTerminalTitle();
+  // main body
+  console.log('---------');
+  console.log('start ' + args.db.label);
+  if (!fs.existsSync('temp/')) fs.mkdirSync('temp/');
+  imageindices = {} // reset counter
+  async.series([
+      function(next){ rundb(args, next); },
+      showProgress,
+      function(next){ runapp(args, next); },
+      showProgress,
+      function(next){ runtest(args, next); },
+      showProgress,
+      function(next){ monitor(args, next); },
+      showProgress,
+      cleanup,
+      function(next){ grabFiles(args, next); }
+    ], function(err, res){
+    if (err) {
+      console.log(err.stack + '\nSkip to next');
+      fs.writeFileSync(__dirname + '/log/dbt-manager.err', err.stack)
+    }
+    cleanup(function(){
+      grabFiles(args, function(){
+        console.log('end ' + args.db.label);
+        return cb();
       });
-    })
+    });
+  })
+
+  function showProgress(next){
+    currentStep++;
+    updateTerminalTitle();
+    return next();
+  }
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
@@ -164,6 +176,13 @@ function loadConf(){
   if (!options) throw new Error('options file not valid');
   debugOut('options: ' + util.inspect(options));
   app.options = options;
+}
+
+function updateTerminalTitle() {
+  var progressBar = '';
+  for (var i = 0; i < currentStep; i++) progressBar += '||';
+  while (progressBar.length < 8) progressBar += '  ';
+  setTerminalTitle('DBT Manager (' + current + '/' + dbtIterations.length + ') [' + progressBar + ']');
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------

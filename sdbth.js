@@ -10,7 +10,7 @@ var rimraf = require('rimraf');
 var DBC    = require(__dirname + '/lib/check-db.js');
 var dbc;
 
-var cleanedOnce = false; // if cleaned at least once. Used for not spamming for sudo requests
+var cleanedOnce = false; // if cleaned at least once. Used for not spamming sudo requests
 
 process.on('SIGINT', function () {
   cleanup(function(){
@@ -34,7 +34,7 @@ var dbs = [];
 var app = {};
 var conf;
 
-var calls = [];
+var dbtIterations = [];
 var current = 0;
 
 var dbindices = {}
@@ -54,24 +54,24 @@ cleanup(function(){
       loadConf();
       
       // iterations
-      _.each(dbs, function(db){
+      _.each(dbs, function(dbname){
         var iterations = 1;
-        var more = db.split('-')[1];
+        var more = dbname.split('-')[1];
         if (more) iterations = parseInt(more);
-        if (iterations.toString() === 'NaN') throw new Error('invalid multipicity syntax at ' + db)
-        db = db.split('-')[0];
-        debugOut('db: ' + db + '. iterations: ' + iterations)
+        if (iterations.toString() === 'NaN') throw new Error('invalid multipicity syntax at ' + dbname)
+        dbname = dbname.split('-')[0];
+        debugOut('dbname: ' + dbname + '. iterations: ' + iterations)
 
         // call each db test multiplicity times
         for (var i = 0; i < iterations; i++) {
-          if (dbindices[db] === undefined) dbindices[db] = 0;
-          else dbindices[db]++;
-          calls.push(main.bind(null, {db: db, dbIndex: dbindices[db]}));
+          if (dbindices[dbname] === undefined) dbindices[dbname] = 0;
+          else dbindices[dbname]++;
+          dbtIterations.push(main.bind(null, {db: {name: dbname, index: dbindices[dbname]}}));
         };
       });
       // in series
       cleanup(function(){
-        async.series(calls, function(){
+        async.series(dbtIterations, function(){
           console.log('---------');
           console.log('final cleanup');
           summarize();
@@ -84,13 +84,12 @@ cleanup(function(){
 });
 
 function main(args, cb){
-    var db = args.db;
-    var dbIndex = args.dbIndex;
+    args.db.label = args.db.name + '--' + args.db.index;
     current += 1;
-    setTerminalTitle('DBT Manager (' + current + '/' + calls.length + ')');
+    setTerminalTitle('DBT Manager (' + current + '/' + dbtIterations.length + ')');
     // main body
     console.log('---------');
-    console.log('start ' + db + '-' + dbIndex);
+    console.log('start ' + args.db.label);
     if (!fs.existsSync('temp/')) fs.mkdirSync('temp/');
     imageindices = {} // reset counter
     async.series([
@@ -107,17 +106,12 @@ function main(args, cb){
       }
       cleanup(function(){
         grabFiles(args, function(){
-          console.log('end ' + db + '-' + dbIndex);
+          console.log('end ' + args.db.label);
           return cb();
         });
       });
     })
 }
-
-// ----------------------------------------------------------------------------------------------------------------------------------------
-// ----------------------------------------------------------------------------------------------------------------------------------------
-// ----------------------------------------------------------------------------------------------------------------------------------------
-
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 function processArgs(){
@@ -168,48 +162,43 @@ function loadConf(){
 
   var options = require(optionsFile);
   if (!options) throw new Error('options file not valid');
-  debugOut('options: ' + util.inspect(options.dbt));
+  debugOut('options: ' + util.inspect(options));
   app.options = options;
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 function rundb(args, cb){
-  var db = args.db;
-  var dbindex = args.dbIndex;
   console.log();
-  console.log('run db ' + args.db);
+  console.log('run db ' + args.db.name);
   debugOut('load db specific constants');
   try {
-    var dbconst = fs.readFileSync('dbs/' + db + '.json');
+    var dbconst = fs.readFileSync('dbs/' + args.db.name + '.json');
     dbconst = JSON.parse(dbconst);
-    args.dbconst = dbconst;
+    args.db.dbconst = dbconst;
     debugOut('dbconst: ' + util.inspect(dbconst));
   } catch(err){
-    if (err.message.indexOf('ENOENT') > -1) return cb(new Error('DB ' + db + ' is not supported'));
+    if (err.message.indexOf('ENOENT') > -1) return cb(new Error('DB ' + args.db.name + ' is not supported'));
   }
 
-  var dblabel = db + '--' + dbindex;
-  args.dblabel = dblabel;
   if (!dbconst.local) {
 
-    var base = 'temp/' + dblabel;
+    var base = 'temp/' + args.db.label;
     var infofile = base + '.json';
     var logfile = base + '.log';
-    var info =  args;
-    info.dbconst = args.dbconst;
-    info.launch = 'db';
-    info.dblabel = dblabel;
-    info.flags = flags;
+    var info = _.extend(args, {
+      launchType: 'db',
+      flags: flags
+    });
 
     // ensure init options are in options file
     if (dbconst.init) {
-      var opts = app.options[db + '-store'];
+      var opts = app.options[args.db.name + '-store'];
       if (opts) {
         _.each(dbconst.reads, function(field){
-          if (!opts[field]) return cb(new Error(db + ' option ' + field + ' not found in options file'));
+          if (!opts[field]) return cb(new Error(args.db.name + ' option ' + field + ' not found in options file'));
         })
-        info.dbOptions = opts;
-      } else return cb(new Error(db + ' options not found in options file'));
+        info.db.options = opts;
+      } else return cb(new Error(args.db.name + ' options not found in options file'));
     };
 
     debugOut('run db image & attach monitor');
@@ -218,7 +207,7 @@ function rundb(args, cb){
 
     // wait for db
     if (flags.fd) {
-      waitPulled(dblabel, function(res){
+      waitPulled(args.db.label, function(res){
       if (!res) return cb(new Error('Err while pulling docker image'))
         return pulled(cb);
       });
@@ -227,14 +216,14 @@ function rundb(args, cb){
 
   function pulled(cb){
     // wait for docker container to be up
-    var cidfile = 'temp/' + dblabel + '.cid';
+    var cidfile = 'temp/' + args.db.label + '.cid';
     waitContainer(cidfile, 10, function(res){
       if (!res) return cb(new Error('DB Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
-      proc.exec('docker inspect ' + db + ' >temp/' + dblabel + '.conf', function(err, stdout, stderr){
+      proc.exec('docker inspect ' + args.db.name + ' >temp/' + args.db.label + '.conf', function(err, stdout, stderr){
         debugOut('get db container info');
         var dbconf;
         try {
-          dbconf = fs.readFileSync('temp/' + dblabel + '.conf');
+          dbconf = fs.readFileSync('temp/' + args.db.label + '.conf');
           dbconf = JSON.parse(dbconf);
           dbconf = dbconf[0];
         } catch(err) {
@@ -242,28 +231,28 @@ function rundb(args, cb){
         }
         debugOut('dbconf: ' + util.inspect(dbconf));
         var dbip = dbconf.NetworkSettings.IPAddress;
-        if (info.dbOptions) info.dbOptions.dbip = dbip;
+        if (info.db.options) info.db.options.dbip = dbip;
         debugOut('dbconfIP: ' + dbip)
 
         flags.fd = false;
-        waitReady(dbip, dbconst.port, dblabel, function(res){
+        waitReady(dbip, dbconst.port, args.db.label, function(res){
         if (!res) return cb(new Error('Timed out while waiting for db'))
 
           setTimeout(function() {
-            args.dbcontainer = {
-              dblabel: dblabel,
+            args.db.container = {
+              label: args.db.label,
               ip: dbip,
               port: dbconst.port
             }
             // run init script or proceed to sanity check
             if (dbconst.init) {
-                console.log('init ' + db);
+                console.log('init ' + args.db.name);
                 var cmdargs = [];
                 _.each(dbconst.reads, function(option){
-                  cmdargs.push(info.dbOptions[option]);
+                  cmdargs.push(info.db.options[option]);
                 });
                 _.each(dbconst.computes, function(option){
-                  cmdargs.push(info.dbOptions[option]);
+                  cmdargs.push(info.db.options[option]);
                 });
                 cmdargs.unshift(__dirname + '/dbs/' + dbconst.init);
                 var cp = spawn('bash', cmdargs);
@@ -273,7 +262,7 @@ function rundb(args, cb){
             } else {
               // sanity check
               var target = {
-                db: db,
+                db: args.db.name,
                 host: dbip,
                 port: dbconst.port,
               }
@@ -291,7 +280,6 @@ function rundb(args, cb){
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 function runapp(args, cb){
-  var db = args.db;
   console.log();
   console.log('run app');
 
@@ -307,28 +295,28 @@ function runapp(args, cb){
 
       if (imageindices[image.name] === undefined) imageindices[image.name] = 0;
       else imageindices[image.name]++;
-      var imagelabel = image.name + '--' + imageindices[image.name];
-      debugOut('imagelabel: ' + imagelabel);
+      image.label = image.name + '--' + imageindices[image.name];
+      debugOut('image.label: ' + image.label);
 
       // pop a new terminal(gnome-terminal)
-      var base = 'temp/' + imagelabel;
+      var base = 'temp/' + image.label;
       var infofile = base + '.json';
       var logfile = base + '.log';
-      var info =  args;
-      info.launch = 'app';
-      info.app = app;
-      info.image = image;
-      info.imagelabel = imagelabel;
-      info.flags = flags;
+      var info = _.extend(args, {
+        launchType: 'app',
+        app: app,
+        image: image,
+        flags: flags,
+        dbconst: args.db.dbconst
+      });
       if (flags.fb && builtImages[image.name]) info.flags.fb = false
-      info.dbconst = args.dbconst;
-      debugOut('run app image ' + imagelabel + ' & attach monitor');
+      debugOut('run app image ' + image.label + ' & attach monitor');
       newWindow(infofile, info);
       // wait for image
       debugOut('wait for app container');
 
       if (flags.fb && !builtImages[image.name]) {
-        waitBuilt(imagelabel, function(res){
+        waitBuilt(image.label, function(res){
         if (!res) return cb(new Error('Err while building docker image'))
           return built(cb);
         });
@@ -336,16 +324,16 @@ function runapp(args, cb){
 
       function built(cb){
         // wait for docker container to be up
-        var cidfile = 'temp/' + imagelabel + '.cid';
+        var cidfile = 'temp/' + image.label + '.cid';
         waitContainer(cidfile, 10, function(res){
           if (!res) return cb(new Error('Image Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
-          proc.exec('docker inspect ' + imagelabel + ' >temp/' + imagelabel + '.conf', function(err, stdout, stderr){
+          proc.exec('docker inspect ' + image.label + ' >temp/' + image.label + '.conf', function(err, stdout, stderr){
             debugOut('get app container info');
             var imgconf;
             var imgip;
             var imgport;
             try {
-              imgconf = fs.readFileSync('temp/' + imagelabel + '.conf');
+              imgconf = fs.readFileSync('temp/' + image.label + '.conf');
               imgconf = JSON.parse(imgconf);
               imgconf = imgconf[0];
               // determine ip
@@ -361,11 +349,11 @@ function runapp(args, cb){
             debugOut('imgport: ' + imgport);
             builtImages[image.name] = true;
 
-            waitReady(imgip, imgport, imagelabel, function(res){
+            waitReady(imgip, imgport, image.label, function(res){
             if (!res) return cb(new Error('Timed out while waiting for image'))
               debugOut('ready? ' + res);
-              if (image.testTarget) args.imgcontainer = {
-                imagelabel: imagelabel,
+              if (image.testTarget) args.imagecontainer = {
+                label: image.label,
                 ip: imgip,
                 port: imgport
               }
@@ -391,14 +379,15 @@ function runtest(args, cb){
     var base = 'temp/' + testlabel;
     var infofile = base + '.json';
     var logfile = base + '.log';
-    var info =  args;
-    info.launch = 'test';
-    info.testlabel = testlabel;
-    info.dbcontainer = args.dbcontainer;
-    info.imgcontainer = args.imgcontainer;
-    info.flags = flags;
-    info.app = app;
-    info.testpath = conf.testpath;
+    var info =  _.extend(args, {
+      launchType: 'test',
+      testlabel: testlabel,
+      dbcontainer: args.dbcontainer,
+      imagecontainer: args.imagecontainer,
+      flags: flags,
+      app: app,
+      testpath: conf.testpath
+    });
     debugOut('run test & attach monitor');
     newWindow(infofile, info);
     cb();
@@ -449,7 +438,7 @@ function grabFiles(args, cb){
   console.log();
   console.log('moving logfiles');
   var logfolder = __dirname + '/log/';
-  var folder = logfolder + args.dblabel + '/';
+  var folder = logfolder + args.db.label + '/';
   if (!fs.existsSync(folder)) fs.mkdirSync(folder);
   _.each(fs.readdirSync(logfolder), function(file){
     var stats = fs.statSync(logfolder + file);

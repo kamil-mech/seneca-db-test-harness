@@ -32,12 +32,13 @@ var flags = {};
 var extras = [];
 var dbs = [];
 var app = {};
+var conf;
 
 var calls = [];
 var current = 0;
 
 var dbindices = {}
-var imgindices = {}
+var imageindices = {}
 var builtImages = {}
 
 // preload
@@ -91,7 +92,7 @@ function main(args, cb){
     console.log('---------');
     console.log('start ' + db + '-' + dbIndex);
     if (!fs.existsSync('temp/')) fs.mkdirSync('temp/');
-    imgindices = {} // reset counter
+    imageindices = {} // reset counter
     async.series([
         function(next){ rundb(args, next); },
         function(next){ runapp(args, next); },
@@ -153,20 +154,20 @@ function processArgs(){
 function loadConf(){
   console.log();
   console.log('get conf from file');
-  app.path = __dirname + '/../' + app.name + '/';
-  debugOut('app.path: ' + app.path);
-
-  var files = fs.readdirSync(app.path);
-  debugOut('files: ' + files);
-
-  var optionsFile = _.find(files, function(file) {
-    return file.indexOf('options') > -1;
+  var confFile = __dirname + '/../sdbth.conf';
+  if (!fs.existsSync(confFile)) throw new Error('no conf file found - create ' + confFile);
+  conf = require(confFile)[app.name];
+  if (!conf) throw new Error('definition for ' + app.name + ' not found in ' + confFile);
+  _.each(['optionsfile', 'dockimages', 'deploymode', 'testpath'], function(field){
+    if (!conf[field]) throw new Error('no ' + field + ' provided in ' + confFile);
   })
+  if (_.isEmpty(conf.dockimages)) throw new Error('no dockimages provided in ' + confFile);
+
+  var optionsFile = conf.optionsfile;
   debugOut('optionsFile: ' + optionsFile);
 
-  var options = require(app.path + optionsFile);
-  if (!options.dbt) throw new Error('no options provided');
-  if (!options.dbt.dockimages) throw new Error('no dockimages provided');
+  var options = require(optionsFile);
+  if (!options) throw new Error('options file not valid');
   debugOut('options: ' + util.inspect(options.dbt));
   app.options = options;
 }
@@ -295,23 +296,18 @@ function runapp(args, cb){
   console.log('run app');
 
   var calls = [];
-  var images = app.options.dbt.dockimages;
   var iterator = 0;
-  _.each(images, function(image){
+  _.each(conf.dockimages, function(image){
     calls.push(runimg.bind(null, image, iterator * 30))
   })
-  if (!app.options.dbt.deploymode) app.options.dbt.deploymode = series;
-  if (app.options.dbt.deploymode === 'parallel' && flags.fb) return cb(new Error('Cannot deploymode: \'parallel\' and build images'));
-  async[app.options.dbt.deploymode](calls, cb)
+  async[conf.deploymode](calls, cb)
     
   function runimg (image, delay, cb) {
     setTimeout(function(){
-      var testTarget = image.testTarget;
-      image = image.name || image;
 
-      if (imgindices[image] === undefined) imgindices[image] = 0;
-      else imgindices[image]++;
-      var imagelabel = image + '--' + imgindices[image];
+      if (imageindices[image.name] === undefined) imageindices[image.name] = 0;
+      else imageindices[image.name]++;
+      var imagelabel = image.name + '--' + imageindices[image.name];
       debugOut('imagelabel: ' + imagelabel);
 
       // pop a new terminal(gnome-terminal)
@@ -324,14 +320,14 @@ function runapp(args, cb){
       info.image = image;
       info.imagelabel = imagelabel;
       info.flags = flags;
-      if (flags.fb && builtImages[image]) info.flags.fb = false
+      if (flags.fb && builtImages[image.name]) info.flags.fb = false
       info.dbconst = args.dbconst;
       debugOut('run app image ' + imagelabel + ' & attach monitor');
       newWindow(infofile, info);
       // wait for image
       debugOut('wait for app container');
 
-      if (flags.fb && !builtImages[image]) {
+      if (flags.fb && !builtImages[image.name]) {
         waitBuilt(imagelabel, function(res){
         if (!res) return cb(new Error('Err while building docker image'))
           return built(cb);
@@ -363,12 +359,12 @@ function runapp(args, cb){
             debugOut('imgconf: ' + imgconf);
             debugOut('imgip: ' + imgip);
             debugOut('imgport: ' + imgport);
-            builtImages[image] = true;
+            builtImages[image.name] = true;
 
             waitReady(imgip, imgport, imagelabel, function(res){
             if (!res) return cb(new Error('Timed out while waiting for image'))
               debugOut('ready? ' + res);
-              if (testTarget) args.imgcontainer = {
+              if (image.testTarget) args.imgcontainer = {
                 imagelabel: imagelabel,
                 ip: imgip,
                 port: imgport
@@ -402,6 +398,7 @@ function runtest(args, cb){
     info.imgcontainer = args.imgcontainer;
     info.flags = flags;
     info.app = app;
+    info.testpath = conf.testpath;
     debugOut('run test & attach monitor');
     newWindow(infofile, info);
     cb();

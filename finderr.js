@@ -7,10 +7,9 @@ var _ = require('lodash')
 var query = process.argv[2].toString().toLowerCase()
 var results = {}
 
-var logfolder = __dirname + '/log/fail' 
+var logfolder = __dirname + '/log/fail'
 fs.stat(logfolder, function (err, res) {
   if (err) return console.log('log/fail folder not present - run sdbth')
-  
   if (res.isDirectory()) {
     var entities = fs.readdirSync(logfolder)
     _.each(entities, function (entity) {
@@ -29,7 +28,7 @@ fs.stat(logfolder, function (err, res) {
               results[db].found += 1
               foundInFolder = true
             }
-          } 
+          }
         })
       }
     })

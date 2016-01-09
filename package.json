@@ -4,7 +4,9 @@
   "description": "Automates the process of testing various DBs against seneca applications",
   "main": "",
   "scripts": {
-    },
+    "test": "echo No test",
+    "lint": "standard"
+  },
   "repository": {
     "type": "git",
     "url": "git://github.com/kamil-mech/seneca-db-test-harness.git"
@@ -24,5 +26,12 @@
     "seneca-redis-store": "0.0.8",
     "seneca-mysql-store": "0.4.0",
     "seneca-postgresql-store": "0.7.0"
-  }
+  },
+  "devDependencies": {
+    "standard": "5.4.1"
+  },
+  "pre-commit": [
+    "test",
+    "lint"
+  ]
 }

@@ -28,7 +28,7 @@ export PGPASSWORD=$PASSWORD
 
 echo "---"
 echo "INIT START"
-psql -h$IP -U $USERNAME -d $USERNAME -f $SCHEMA
+psql -h$IP -U $USERNAME -d $NAME -f $SCHEMA
 echo "INIT COMPLETE"
 echo "---"
 #echo "USE [CTRL]+[D] to leave" # used to login

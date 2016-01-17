@@ -16,4 +16,4 @@ echo "SCHEMA: $SCHEMA"
 echo "CIDFILE: $CIDFILE"
 echo
 
-docker run -p 3306:3306 --name mysql -e MYSQL_DATABASE=$NAME -e MYSQL_ROOT_PASSWORD=$PASSWORD --cidfile=$CIDFILE mysql --skip-name-resolve
+docker run -p 3306:3306 --name mysql -e MYSQL_DATABASE=$NAME -e MYSQL_ROOT_PASSWORD=password --cidfile=$CIDFILE mysql --skip-name-resolve

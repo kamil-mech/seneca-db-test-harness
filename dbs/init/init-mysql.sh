@@ -26,7 +26,8 @@ echo
 
 echo "---"
 echo "INIT START"
-mysql -h$IP -u $USER -p$PASSWORD $NAME < $SCHEMA
+mysql -h$IP -u root -ppassword $NAME < $SCHEMA
+mysql -h$IP -u root -ppassword -e "GRANT ALL PRIVILEGES on *.* TO '"$USER"'@'%' identified by '"$PASSWORD"' WITH GRANT OPTION; FLUSH PRIVILEGES"
 echo "INIT COMPLETE"
 echo "---"
 #mysql -u $USER -p$PASSWORD $NAME # used to log in

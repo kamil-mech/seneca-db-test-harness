@@ -265,8 +265,8 @@ function rundb (args, cb) {
               ip: dbip,
               port: dbconst.port
             }
-            // run init script or proceed to sanity check
             if (dbconst.init) {
+              // init script
               console.log('init ' + args.db.name)
               var cmdargs = []
               _.each(dbconst.reads, function (option) {
@@ -277,20 +277,25 @@ function rundb (args, cb) {
               })
               cmdargs.unshift(__dirname + '/dbs/' + dbconst.init)
               var cp = spawn('bash', cmdargs)
-              cp.on('close', cb)
-            } else {
-              // sanity check
-              var target = {
-                db: args.db.name,
-                host: dbip,
-                port: dbconst.port
-              }
-              dbc = DBC(target)
-              dbc.check(function (err, res) {
-                return cb(err, res)
-              })
-            }
+              cp.on('close', sanityCheck)
+            } else return sanityCheck()
           }, 1000)
+
+          function sanityCheck () {
+            // sanity check
+            console.log()
+            console.log('run smoke test')
+            var target = {
+              db: args.db.name,
+              host: dbip,
+              port: dbconst.port,
+              testargs: dbconst.testargs
+            }
+            dbc = DBC(target)
+            dbc.check(function (err, res) {
+              return cb(err, res)
+            })
+          }
         })
       })
     })

@@ -12,5 +12,9 @@
   ],
   "computes": [
     "dbip"
-  ]
+  ],
+  "testargs": {
+    "user": "root",
+    "password": "password"
+  }
 }

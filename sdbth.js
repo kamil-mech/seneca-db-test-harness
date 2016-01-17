@@ -300,14 +300,18 @@ function rundb (args, cb) {
 // ----------------------------------------------------------------------------------------------------------------------------------------
 function runapp (args, cb) {
   console.log()
-  console.log('run app')
+  if (flags.na) {
+    console.log('setup complete')
+  } else {
+    console.log('run app')
 
-  var calls = []
-  var iterator = 0
-  _.each(conf.dockimages, function (image) {
-    calls.push(runimg.bind(null, image, iterator * 30))
-  })
-  async[conf.deploymode](calls, cb)
+    var calls = []
+    var iterator = 0
+    _.each(conf.dockimages, function (image) {
+      calls.push(runimg.bind(null, image, iterator * 30))
+    })
+    async[conf.deploymode](calls, cb)
+  }
 
   function runimg (image, delay, cb) {
     setTimeout(function () {
@@ -390,11 +394,11 @@ function runapp (args, cb) {
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 function runtest (args, cb) {
-  var testindex = 0
   console.log()
   if (flags.nt) {
     console.log('setup complete')
   } else {
+    var testindex = 0
     console.log('run test')
     // pop a new terminal(gnome-terminal)
     var testlabel = 'test--' + testindex

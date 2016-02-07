@@ -1,5 +1,12 @@
 TODO
 
+Ubuntu 15.10
+Node 0.10.38
+
+SDBTH automates the process of testing seneca-stores against seneca applications. It deploys db and app in docker containers. Then it runs tests. Meanwhile it monitors for errors. Many tests can be scheduled at once.
+
+https://www.youtube.com/watch?v=VYFfys8LwSk
+
 #quick setup
 
 - pull [this well app fork](https://github.com/kamil-mech/well/tree/sdbth-4)

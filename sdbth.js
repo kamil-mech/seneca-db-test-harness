@@ -44,6 +44,8 @@ var dbindices = {}
 var imageindices = {}
 var builtImages = {}
 
+var currentdb // global
+
 // preload
 console.log('---------')
 console.log('init')
@@ -90,6 +92,7 @@ function main (args, cb) {
   args.db.label = args.db.name + '--' + args.db.index
   current += 1
   currentStep = 0
+  currentdb = args.db.label
   updateTerminalTitle()
   // main body
   console.log('---------')
@@ -183,7 +186,7 @@ function updateTerminalTitle () {
   var progressBar = ''
   for (var i = 0; i < currentStep; i++) progressBar += '||'
   while (progressBar.length < 12) progressBar += '  '
-  terminal.setTitle('[' + progressBar + '] DBT Manager (' + current + '/' + dbtIterations.length + ') (' + failsSoFar + ' fails)')
+  terminal.setTitle('[' + progressBar + '] DBT Manager (' + current + '/' + dbtIterations.length + ') (' + failsSoFar + ' fails) ' + currentdb)
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------

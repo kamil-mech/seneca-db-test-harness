@@ -228,12 +228,11 @@ function rundb (args, cb) {
     newWindow(infofile, info)
 
     // wait for db
-    if (flags.fd) {
-      waitPulled(args.db.label, function (res) {
-        if (!res) return cb(new Error('Err while pulling docker image'))
-        return pulled(cb)
-      })
-    } else return pulled(cb)
+    waitPulled(args.db.label, flags.fd, function (res) {
+      if (!res) return cb(new Error('Err while pulling docker image'))
+      
+      return pulled(cb)
+    })
   } else return cb()
 
   function pulled (cb) {
@@ -615,33 +614,57 @@ function waitBuilt (img, cb) {
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
-function waitPulled (img, cb) {
-  asyncRecurse(init, modifier, check, cb)
+function waitPulled (img, fd, cb) {
+  console.log('wait for ' + img + ' image to be pulled:')
 
-  function init (cb) {
-    console.log('wait for ' + img + ' image to be pulled:')
-    return cb()
-  }
-  function modifier (cb) {
-    return cb()
-  }
-  function check (cb) {
-    lookForFile(__dirname + '/temp/' + img + '.fd', function (found) {
-      if (found) return cb(true, true) // first true signals end of recursion, second is just data that is returned
+  var fbs = false
+  var timeoutWaitingForFDS = 2000
+  var timeWaitingForFDS = 0
 
-      var isErr = isEnd('err')
-      debugOut('isErr: ' + isErr)
-      var isFin = isEnd('fin')
-      debugOut('isFin: ' + isFin)
-
-      if (isErr || isFin) {
-        var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin
-        process.stdout.write(msg)
-        return cb(true, false)
+  if (!fd) {
+    var startFileCheckInterval = setInterval( function () {
+      timeWaitingForFDS += 1000
+      lookForFile(__dirname + '/temp/' + img + '.fds', function (found) {
+        if (found) {
+          fbs = true
+          clearInterval(startFileCheckInterval)
+          checkPulled(cb)
+        }
+      })
+      if (timeWaitingForFDS >= timeoutWaitingForFDS) {
+        clearInterval(startFileCheckInterval)
+        if (!fbs) return cb(true) // if waiting docker pull start for more than 1 second and not forcing docker pull, assume pulled already
       }
+    }, 1000)
+  } else checkPulled(cb)
 
-      return cb(false) // needed to continue recursion
-    })
+  function checkPulled(cb) {
+    asyncRecurse(init, modifier, check, cb)
+
+    function init (cb) {
+      return cb()
+    }
+    function modifier (cb) {
+      return cb()
+    }
+    function check (cb) {
+      lookForFile(__dirname + '/temp/' + img + '.fde', function (found) {
+        if (found) return cb(true, true) // first true signals end of recursion, second is just data that is returned
+
+        var isErr = isEnd('err')
+        debugOut('isErr: ' + isErr)
+        var isFin = isEnd('fin')
+        debugOut('isFin: ' + isFin)
+
+        if (isErr || isFin) {
+          var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin
+          process.stdout.write(msg)
+          return cb(true, false)
+        }
+
+        return cb(false) // needed to continue recursion
+      })
+    }
   }
 }
 

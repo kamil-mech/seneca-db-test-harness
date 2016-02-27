@@ -5,7 +5,7 @@ echo "CHECKING FOR psql COMMAND"
 psql --version
 if [[ "$?" -gt 0 ]]; then
   echo "MISSING COMMAND psql" 1>&2
-  echo "INSTALL VIA: sudo apt-get install postgres-xc-client" 1>&2
+  echo "INSTALL VIA: sudo apt-get install postgres-client-9.4" 1>&2
   echo 1>&2
   exit 64
 fi

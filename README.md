@@ -63,4 +63,29 @@ Adding support for a particular database is as complex as the database itself. I
 ## Operation Flow
 This section explains how DBT Manager works internally. Reading the source may be necessary to add support for a very complicated database.
 
-**#TODO**
+- Args are processed and assigned to variables.
+- Conf and options are loaded based on args.
+- Store tests are scheduled based on multiplicity of params after -dbs flag.
+- Each scheduled test starts off with binded main function.
+- First, main attempts to deploy the db.
+- Db-specific constants are loaded.
+- If DB is local(like mem, jsonfile or level), then it does nothing in this section.
+- If DB has an init script(like mysql or postgresql) then it ensures all the reads values are fed into deployment.
+- If DB is regular (like mongo or redis) then it just uses constants.
+- Once all is set, main runs deployment in a new window(if -nw or -nwo flags are not used).
+- All subprocesses are using spawmon.js, which is generating files in /temp and /log based on stdout and stderr of the process. spawmon.js sets up monitoring and then runs pop.js, which takes care of deployment logic.
+- All pop.js instances are fed an info object which contains plenty of meta info, like db constants, dblabel and so on.
+- pop.js tries to pull, build and run docker images or just runs test accordingly to info it is fed.
+- Main waits for pop.js to finish pulling, building. starting and initialising the image. Then, it may also run the init script if it is present, feeding it computes fields.
+- Then smoke test - called sanity check - is run. All it does is trying to connect to db using testargs and attempt basic save and load.
+- Then main attempts to run the app image in similar fashion to db image.
+- It tries to rebuild the image if -fb is fed into it. Then it deploys it, linking db docker container to it.
+- Then it waits for the image to be up and ready. This is determined using curl and asynchronous recursion.
+- Finally, the tests are run and fed all necessary information.
+- Monitors go up and scan for err, fin and log files made by instances of spawmon.js. If they detect a fin, then success is assumed. If they detect an err, then failure is assumed.
+- Cleanup follows, making sure docker containers and subprocesses are destroyed. temp folder is emptied. If -cln flag is used, docker bloat is erased (handy with mongo).
+- Logfiles are moved to log folder and organised.
+- Main continues with stores until it finishes testing them all.
+- When finished testing, it summarizes the test.
+- Log folder is now ready for investigation.
+

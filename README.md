@@ -43,6 +43,22 @@ module.exports = {
 }
 ```
 
+## Flags
+
+
+| Flag | Description   |
+| ---- | ------------- |
+| -dbs | dbs to be tested, including multiplicity |
+| -fb  | force build of app image |
+| -fd  | force docker pull of db images |
+| -na  | no app, deploy only db, then pause |
+| -nt  | no test, deploy only db and app, then pause |
+| -nm  | no monitors, deploy everything, then pause |
+| -nw  | no windows, do not spawn subprocesses in separated terminals |
+| -nwo | same as -nw, but also hide output from subprocesses |
+| -cln | removes docker bloat using rm -rf |
+| -debug | shows literally everything that happens |
+
 ## Contribution
 Adding support for a particular database is as complex as the database itself. In general, schema-based stores are the hardest to harness. In order to add support for a new database, follow some of these steps:
 - Ensure such `seneca-?-store exists` on `npm` or create one.
@@ -56,7 +72,7 @@ Adding support for a particular database is as complex as the database itself. I
 - `testargs` are necessary for smoke test to pass. These are usually similar to values of `reads`. They are strongly coupled with setup in `run`. So far they are only used in `mysql` and `postgresql`.
 - Ensure that the app it's tested against is Dockerized and that it actually uses the store. It may be handy to disable default store (mem-store) when initialising seneca:`var seneca = require('seneca')({default_plugins:{'mem-store':false}})`.
 - Ensure this setup runs flawless (100% success) in at least 10 runs, otherwise it can be considered to have a major bug.
-- Remember to use `-debug` flag when necessary.
+- `-debug` is your friend.
 - For a handy example check out **Quick Setup** above.
 - If unclear, stuck and frustrated for too long - understand how it works. (see below)
 

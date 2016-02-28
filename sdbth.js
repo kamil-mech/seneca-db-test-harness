@@ -52,37 +52,34 @@ console.log('init')
 cleanup(function () {
   terminal.setTitle('DBT Manager')
   rimraf('temp/', function () {
-    rimraf('log/', function () {
-      fs.mkdirSync('log/')
 
-      processArgs()
-      loadConf()
+    processArgs()
+    loadConf()
 
-      // iterations
-      _.each(dbs, function (dbname) {
-        var iterations = 1
-        var more = dbname.split('-')[1]
-        if (more) iterations = parseInt(more, 10)
-        if (iterations.toString() === 'NaN') throw new Error('invalid multipicity syntax at ' + dbname)
-        dbname = dbname.split('-')[0]
-        debugOut('dbname: ' + dbname + '. iterations: ' + iterations)
+    // iterations
+    _.each(dbs, function (dbname) {
+      var iterations = 1
+      var more = dbname.split('-')[1]
+      if (more) iterations = parseInt(more, 10)
+      if (iterations.toString() === 'NaN') throw new Error('invalid multipicity syntax at ' + dbname)
+      dbname = dbname.split('-')[0]
+      debugOut('dbname: ' + dbname + '. iterations: ' + iterations)
 
-        // call each db test multiplicity times
-        for (var i = 0; i < iterations; i++) {
-          if (dbindices[dbname] === undefined) dbindices[dbname] = 0
-          else dbindices[dbname]++
-          dbtIterations.push(main.bind(null, {db: {name: dbname, index: dbindices[dbname]}}))
-        }
-      })
-      // in series
-      cleanup(function () {
-        async.series(dbtIterations, function () {
-          console.log('---------')
-          console.log('final cleanup')
-          summarize()
-          console.log()
-          process.kill(process.pid, 'SIGINT') // TODO remove
-        })
+      // call each db test multiplicity times
+      for (var i = 0; i < iterations; i++) {
+        if (dbindices[dbname] === undefined) dbindices[dbname] = 0
+        else dbindices[dbname]++
+        dbtIterations.push(main.bind(null, {db: {name: dbname, index: dbindices[dbname]}}))
+      }
+    })
+    // in series
+    cleanup(function () {
+      async.series(dbtIterations, function () {
+        console.log('---------')
+        console.log('final cleanup')
+        summarize()
+        console.log()
+        process.kill(process.pid, 'SIGINT') // TODO remove
       })
     })
   })
@@ -112,8 +109,8 @@ function main (args, cb) {
     function (next) { grabFiles(args, next) }
   ], function (err, res) {
     if (err) {
-      console.log(err.stack + '\nSkip to next')
-      fs.writeFileSync(__dirname + '/log/dbt-manager.err', err.stack)
+      console.error(err.stack + '\nSkip to next')
+      // fs.appendFileSync(__dirname + '/log/dbt-manager.err', err.stack)
     }
     cleanup(function () {
       grabFiles(args, function () {
@@ -152,6 +149,7 @@ function processArgs () {
   debugOut('flags: ' + util.inspect(flags))
   debugOut('extras: ' + extras)
   debugOut('dbs: ' + dbs)
+
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
@@ -475,9 +473,11 @@ function grabFiles (args, cb) {
   var folder = logfolder + args.db.label + '/'
   if (!fs.existsSync(folder)) fs.mkdirSync(folder)
   _.each(fs.readdirSync(logfolder), function (file) {
-    var stats = fs.statSync(logfolder + file)
-    if (stats.isFile()) {
-      fs.renameSync(logfolder + file, folder + file)
+    if (file != 'dbt-manager') {
+      var stats = fs.statSync(logfolder + file)
+      if (stats.isFile()) {
+        fs.renameSync(logfolder + file, folder + file)
+      }
     }
   })
   return cb()
@@ -495,7 +495,7 @@ function summarize () {
   _.each(fs.readdirSync(logfolder), function (subfolder) {
     subfolder = subfolder + '/'
 
-    if (!(subfolder === 'fail/' || subfolder === 'success/')) {
+    if (!(subfolder === 'fail/' || subfolder === 'success/' || subfolder == 'dbt-manager/')) {
       var stats = fs.statSync(logfolder + subfolder)
       if (stats.isDirectory()) {
         // setup folder in results

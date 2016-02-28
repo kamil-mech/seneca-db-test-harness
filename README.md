@@ -6,7 +6,7 @@ Tested on **Ubuntu 15.10** with **Node 0.10.38**
 
 ## About
 
-SDBTH automates the process of testing seneca-stores against seneca applications. It deploys both database and application in docker containers using DBT Manager. DBT Manager is the core of SDBTH and it serves the purpose of deployment, linking, testing, monitoring and reporting. After containers are deployed, DBT Manager runs tests. When tests are ran, it monitors for errors. Many tests can be scheduled at once. At the end it reports the results and provides tools aiding debugging like `why.js` and `finderr.js`.
+SDBTH automates the process of testing seneca-stores against seneca applications. It deploys both database and application in docker containers using DBT Manager. DBT Manager is the core of SDBTH and it serves the purpose of deployment, linking, testing, monitoring and reporting. After containers are deployed, DBT Manager runs tests inside test target container. When tests are ran, it monitors for errors. Many tests can be scheduled at once. At the end it reports the results and provides tools aiding debugging like `why.js` and `finderr.js`.
 
 Video presentation:
 
@@ -38,7 +38,6 @@ module.exports = {
       { name: 'well-app', path: __dirname + '/well/.', testTarget: true }
     ],
     deploymode: 'series', // 'series' or 'parallel'
-    testpath: __dirname + '/well/' // it will npm test in this location
   }
 }
 ```
@@ -98,7 +97,7 @@ This section explains how DBT Manager works internally. Reading the source may b
 - Then main attempts to run the app image in similar fashion to db image.
 - It tries to rebuild the image if -fb is fed into it. Then it deploys it, linking db docker container to it.
 - Then it waits for the image to be up and ready. This is determined using curl and asynchronous recursion.
-- Finally, the tests are run and fed all necessary information.
+- Finally, the tests are run inside test target container and fed all necessary information.
 - Monitors go up and scan for err, fin and log files made by instances of spawmon.js. If they detect a fin, then success is assumed. If they detect an err, then failure is assumed.
 - Cleanup follows, making sure docker containers and subprocesses are destroyed. temp folder is emptied. If -cln flag is used, docker bloat is erased (handy with mongo).
 - Logfiles are moved to log folder and organised.

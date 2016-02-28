@@ -160,7 +160,7 @@ function loadConf () {
   if (!fs.existsSync(confFile)) throw new Error('no conf file found - create ' + confFile)
   conf = require(confFile)[app.name]
   if (!conf) throw new Error('definition for ' + app.name + ' not found in ' + confFile)
-  _.each(['optionsfile', 'dockimages', 'deploymode', 'testpath'], function (field) {
+  _.each(['optionsfile', 'dockimages', 'deploymode'], function (field) {
     if (!conf[field]) throw new Error('no ' + field + ' provided in ' + confFile)
   })
   if (_.isEmpty(conf.dockimages)) throw new Error('no dockimages provided in ' + confFile)
@@ -416,8 +416,7 @@ function runtest (args, cb) {
       dbcontainer: args.dbcontainer,
       imagecontainer: args.imagecontainer,
       flags: flags,
-      app: app,
-      testpath: conf.testpath
+      app: app
     })
     debugOut('run test & attach monitor')
     newWindow(infofile, info)

@@ -20,7 +20,7 @@ https://www.youtube.com/watch?v=VYFfys8LwSk
 - Pull this repo, so that both folders are side by side
 - Inside this `npm install`
 - Beside both folders, create `sdbth.conf` file and add configuration(see below)
-- Example use: `node sdbth.js well -fb -dbs mem-5 mysql postgresql level jsonfile mongo redis`
+- Example use: `node main.js well -fb -dbs mem-5 mysql postgresql level jsonfile mongo redis`
 - In case of problems with Redis, see [this issue](https://github.com/kamil-mech/seneca-db-test-harness/issues/2)
 
 **sdbth.conf**
@@ -79,6 +79,7 @@ Adding support for a particular database is as complex as the database itself. I
 ## Operation Flow
 This section explains how DBT Manager works internally. Reading the source may be necessary to add support for a very complicated database.
 
+- main.js spawns sdbth.js and monitors it
 - Args are processed and assigned to variables.
 - Conf and options are loaded based on args.
 - Store tests are scheduled based on multiplicity of params after -dbs flag.

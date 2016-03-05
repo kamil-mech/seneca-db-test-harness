@@ -237,6 +237,7 @@ function rundb (args, cb) {
     showProgress()
     // wait for docker container to be up
     var cidfile = 'temp/' + args.db.label + '.cid'
+    if (info.db.options) info.db.options.dbcid = fs.readFileSync(cidfile)
     waitContainer(cidfile, 10, function (res) {
       if (!res) return cb(new Error('DB Container cidfile ' + cidfile + ' not found. Timed out while waiting for container'))
       proc.exec('docker inspect ' + args.db.name + ' >temp/' + args.db.label + '.conf', function (err, stdout, stderr) {
@@ -263,7 +264,8 @@ function rundb (args, cb) {
             args.db.container = {
               label: args.db.label,
               ip: dbip,
-              port: dbconst.port
+              port: dbconst.port,
+              cid: info.db.options.dbcid
             }
             if (dbconst.init) {
               // init script
@@ -760,6 +762,7 @@ function waitReady (ip, port, label, cb) {
   }
 
   function checkIfOnline (ip, port, cb) {
+    debugOut("begin ping");
     proc.exec('curl -m 1 -v --url ' + ip + ':' + port + '/', function (err, stdout, stderr) {
       if (err) process.stdout.write('') // supress lint
       process.stdout.write('.')

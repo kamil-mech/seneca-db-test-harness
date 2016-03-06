@@ -264,9 +264,10 @@ function rundb (args, cb) {
             args.db.container = {
               label: args.db.label,
               ip: dbip,
-              port: dbconst.port,
-              cid: info.db.options.dbcid
+              port: dbconst.port
             }
+            if (info.db.options && info.db.options.dbcid) args.db.container.dbcid = info.db.options.dbcid
+
             if (dbconst.init) {
               // init script
               console.log('init ' + args.db.name)

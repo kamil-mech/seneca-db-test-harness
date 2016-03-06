@@ -285,23 +285,24 @@ function rundb (args, cb) {
           }, 1000)
 
           function sanityCheck () {
-            if (flags.ns) return cb()
+            if (flags.ns) {
+              console.log('setup complete')
+            }
             else {
-
+              // sanity check
+              console.log()
+              console.log('run smoke test')
+              var target = {
+                db: args.db.name,
+                host: dbip,
+                port: dbconst.port,
+                testargs: dbconst.testargs
+              }
+              dbc = DBC(target)
+              dbc.check(function (err, res) {
+                return cb(err, res)
+              })
             }
-            // sanity check
-            console.log()
-            console.log('run smoke test')
-            var target = {
-              db: args.db.name,
-              host: dbip,
-              port: dbconst.port,
-              testargs: dbconst.testargs
-            }
-            dbc = DBC(target)
-            dbc.check(function (err, res) {
-              return cb(err, res)
-            })
           }
         })
       })

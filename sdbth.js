@@ -285,6 +285,10 @@ function rundb (args, cb) {
           }, 1000)
 
           function sanityCheck () {
+            if (flags.ns) return cb()
+            else {
+
+            }
             // sanity check
             console.log()
             console.log('run smoke test')

@@ -50,7 +50,8 @@ module.exports = {
 | -dbs | dbs to be tested, including multiplicity |
 | -fb  | force build of app image |
 | -fd  | force docker pull of db images |
-| -na  | no app, deploy only db, then pause |
+| -ns  | no smoke test, deploy only db, then pause |
+| -na  | no app, deploy only db and run smoke test, then pause |
 | -nt  | no test, deploy only db and app, then pause |
 | -nm  | no monitors, deploy everything, then pause |
 | -nw  | no windows, do not spawn subprocesses in separated terminals |

@@ -2,6 +2,7 @@
   "local": false,
   "image": "cassandra",
   "port": 9042,
+  "extra_ports": [9160],
   "init": "/init/init-cassandra.sh",
   "reads": [
     "name"

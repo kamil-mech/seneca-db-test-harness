@@ -53,19 +53,7 @@ rimraf('log/', function () {
     // ---------------------------------------------------------------------
 
     function error (data) {
-      if (!justWarning(data)) {
-        fs.appendFileSync(errfile, data)
-      }
-    }
-
-    function justWarning (data) {
-      var knownWarnings = ['warning', 'deprecated', 'aborted connection']
-      var lowdata = data.toString().toLowerCase()
-      var justWarning = false
-      _.each(knownWarnings, function (warning) {
-        if (!justWarning && lowdata.indexOf(warning) > -1) justWarning = true
-      })
-      return justWarning
+      fs.appendFileSync(errfile, data)
     }
 
     function output (data) {

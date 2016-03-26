@@ -52,6 +52,7 @@ module.exports = {
 | Flag | Description   |
 | ---- | ------------- |
 | -dbs | dbs to be tested, including multiplicity |
+| -all | tests all dbs, except dbnames provided after the flag |
 | -fb  | force build of app image |
 | -fd  | force docker pull of db images |
 | -ns  | no smoke test, deploy only db, then pause |

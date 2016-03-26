@@ -54,8 +54,31 @@ cleanup(function () {
     processArgs()
     loadConf()
 
+    var dbsWithoutExceptions = []
+    if (flags.all) {
+      var names = fs.readdirSync(__dirname + '/dbs/')
+      var dbsInFolder = []
+      _.each(names, function (name) {
+        var lengthBefore = name.length
+        name = name.split('.')[0]
+        if (lengthBefore !== name.length) dbsInFolder.push(name)
+      })
+
+      _.each(dbsInFolder, function (name) {
+        var doNotInsert = false
+        _.each(flags.all, function (exception) {
+          if (name === exception) doNotInsert = true
+        })
+        if (!doNotInsert) dbsWithoutExceptions.push(name)
+      })
+    }
+
+    var dbsToUse = []
+    if (dbsWithoutExceptions.length > 0) dbsToUse = dbsWithoutExceptions
+    else dbsToUse = flags.dbs
+
     // iterations
-    _.each(flags.dbs, function (dbname) {
+    _.each(dbsToUse, function (dbname) {
       var iterations = 1
       var more = dbname.split('-')[1]
       if (more) iterations = parseInt(more, 10)

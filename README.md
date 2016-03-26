@@ -37,9 +37,13 @@ module.exports = {
     dockimages: [
       { name: 'well-app', path: __dirname + '/well/.', testTarget: true }
     ],
-    deploymode: 'series', // 'series' or 'parallel'
+    deploymode: 'series', // 'series' or 'parallel',
+    knownWarnings: [
+      "deprecated"
+    ]
   }
 }
+
 ```
 
 ## Flags

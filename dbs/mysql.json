@@ -18,6 +18,7 @@
     "password": "password"
   },
   "knownWarnings": [
+    "warning",
     "aborted connection"
   ]
 }

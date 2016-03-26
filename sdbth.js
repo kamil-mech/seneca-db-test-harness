@@ -172,6 +172,7 @@ function loadConf () {
   if (!options) throw new Error('options file not valid')
   debugOut('options: ' + util.inspect(options))
   app.options = options
+  app.conf = conf
 }
 
 function showProgress (next) {
@@ -342,7 +343,7 @@ function runapp (args, cb) {
         app: app,
         image: image,
         flags: flags,
-        dbconst: args.db.dbconst
+        dbconst: args.db.dbconst,
       })
       if (flags.fb && builtImages[image.name]) info.flags.fb = false
       debugOut('run app image ' + image.label + ' & attach monitor')

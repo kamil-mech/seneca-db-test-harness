@@ -30,8 +30,6 @@ var gargs = process.argv
 gargs.shift()
 gargs.shift()
 var flags = {}
-var extras = []
-var dbs = []
 var app = {}
 var conf
 
@@ -57,7 +55,7 @@ cleanup(function () {
     loadConf()
 
     // iterations
-    _.each(dbs, function (dbname) {
+    _.each(flags.dbs, function (dbname) {
       var iterations = 1
       var more = dbname.split('-')[1]
       if (more) iterations = parseInt(more, 10)
@@ -133,22 +131,19 @@ function processArgs () {
   gargs.shift()
   debugOut('app: ' + app.name)
 
-  var popdbs = false
+  var currentFlag = 'extras'
+  flags.extras = []
   _.each(gargs, function (arg) {
     if (arg.charAt(0) === ('-')) {
-      if (arg === '-dbs') popdbs = true
-      else popdbs = false
-
       arg = arg.substring(1)
-      flags[arg] = true
+      currentFlag = arg
+      flags[currentFlag] = []
     } else {
-      if (popdbs) dbs.push(arg)
-      else extras.push(arg)
+      if (currentFlag) flags[currentFlag].push(arg)
+        else extras.push(arg)
     }
   })
   debugOut('flags: ' + util.inspect(flags))
-  debugOut('extras: ' + extras)
-  debugOut('dbs: ' + dbs)
 
 }
 
@@ -158,8 +153,14 @@ function loadConf () {
   console.log('get conf from file')
   var confFile = __dirname + '/../sdbth.conf'
   if (!fs.existsSync(confFile)) throw new Error('no conf file found - create ' + confFile)
-  conf = require(confFile)[app.name]
-  if (!conf) throw new Error('definition for ' + app.name + ' not found in ' + confFile)
+  conf = require(confFile)
+  var confnames = ''
+  _.each(Object.keys(conf), function (confname) {
+    confnames += confname + ', '
+  })
+  if (confnames.length > 2) confnames = confnames.substring(0, confnames.length - 2)
+  if (!conf[app.name]) throw new Error('definition for ' + app.name + ' not found in ' + confFile + ' - did you mean any of these: ' + confnames + '?')
+  conf = conf[app.name]
   _.each(['optionsfile', 'dockimages', 'deploymode'], function (field) {
     if (!conf[field]) throw new Error('no ' + field + ' provided in ' + confFile)
   })

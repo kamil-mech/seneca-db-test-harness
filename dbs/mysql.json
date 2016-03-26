@@ -11,7 +11,8 @@
     "schema"
   ],
   "computes": [
-    "dbip"
+    "dbip",
+    "dbcid"
   ],
   "testargs": {
     "user": "root",

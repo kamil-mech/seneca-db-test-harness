@@ -61,12 +61,24 @@ cleanup(function () {
 
     var dbsWithoutExceptions = []
     if (flags.all) {
+      var multiplicity = 1
+      _.each(flags.all, function (arg) {
+        if (arg.indexOf("x=") > -1) {
+          var multiplicityStr = arg.split("x=")[1]
+          multiplicity = parseInt(multiplicityStr, 10)
+          if (multiplicity.toString() === 'NaN') throw new Error('invalid multipicity syntax at x=' + multiplicityStr)
+        }
+      })
       var names = fs.readdirSync(__dirname + '/dbs/')
       var dbsInFolder = []
       _.each(names, function (name) {
         var lengthBefore = name.length
         name = name.split('.')[0]
-        if (lengthBefore !== name.length) dbsInFolder.push(name)
+        if (lengthBefore !== name.length) {
+          for (var i = 0; i < multiplicity; i++) {
+            dbsInFolder.push(name)
+          }
+        }
       })
 
       _.each(dbsInFolder, function (name) {

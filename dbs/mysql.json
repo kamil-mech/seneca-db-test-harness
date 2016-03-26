@@ -16,5 +16,8 @@
   "testargs": {
     "user": "root",
     "password": "password"
-  }
+  },
+  "knownWarnings": [
+    "aborted connection"
+  ]
 }

@@ -14,14 +14,18 @@ var terminal = require(__dirname + '/lib/terminal.js')
 var cleanedOnce = false // if cleaned at least once. Used for not spamming sudo requests
 
 process.on('SIGINT', function () {
-  cleanup(function () {
-    process.exit(0)
+  grabFiles(currentargs, function () {
+    summarize()
+    cleanup(function () {
+      console.log()
+      process.exit(0)
+    })
   })
 })
 
 process.on('uncaughtException', function (err) {
+  console.log('Uncaught exception: ' + err.stack)
   cleanup(function () {
-    console.log('Uncaught exception: ' + err.stack)
     process.exit(1)
   })
 })
@@ -43,6 +47,7 @@ var imageindices = {}
 var builtImages = {}
 
 var currentdb // global
+var currentargs //global
 
 // preload
 console.log('---------')
@@ -96,17 +101,14 @@ cleanup(function () {
     // in series
     cleanup(function () {
       async.series(dbtIterations, function () {
-        console.log('---------')
-        console.log('final cleanup')
-        summarize()
-        console.log()
-        process.kill(process.pid, 'SIGINT') // TODO remove
+        process.kill(process.pid, 'SIGINT')
       })
     })
   })
 })
 
 function main (args, cb) {
+  currentargs = args
   args.db.label = args.db.name + '--' + args.db.index
   current += 1
   currentStep = 0

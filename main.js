@@ -1,7 +1,7 @@
 
 var spawn = require('child_process').spawn
 var fs = require('fs')
-var _ = require('lodash')
+// var _ = require('lodash')
 
 var rimraf = require('rimraf')
 var cplabel = 'dbt-manager'

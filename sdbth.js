@@ -47,7 +47,7 @@ var imageindices = {}
 var builtImages = {}
 
 var currentdb // global
-var currentargs //global
+var currentargs // global
 
 // preload
 console.log('---------')
@@ -55,7 +55,7 @@ console.log('init')
 cleanup(function () {
   terminal.setTitle('DBT Manager')
   rimraf('temp/', function () {
-
+    //
     processArgs()
     loadConf()
 
@@ -63,8 +63,8 @@ cleanup(function () {
     if (flags.all) {
       var multiplicity = 1
       _.each(flags.all, function (arg) {
-        if (arg.indexOf("x=") > -1) {
-          var multiplicityStr = arg.split("x=")[1]
+        if (arg.indexOf('x=') > -1) {
+          var multiplicityStr = arg.split('x=')[1]
           multiplicity = parseInt(multiplicityStr, 10)
           if (multiplicity.toString() === 'NaN') throw new Error('invalid multipicity syntax at x=' + multiplicityStr)
         }
@@ -177,11 +177,10 @@ function processArgs () {
       flags[currentFlag] = []
     } else {
       if (currentFlag) flags[currentFlag].push(arg)
-        else extras.push(arg)
+        else flags.extras.push(arg)
     }
   })
   debugOut('flags: ' + util.inspect(flags))
-
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
@@ -267,7 +266,7 @@ function rundb (args, cb) {
     // wait for db
     waitPulled(args.db.label, flags.fd, function (res) {
       if (!res) return cb(new Error('Err while pulling docker image'))
-      
+
       return pulled(cb)
     })
   } else return cb()
@@ -326,8 +325,7 @@ function rundb (args, cb) {
           function sanityCheck () {
             if (flags.ns) {
               console.log('setup complete')
-            }
-            else {
+            } else {
               // sanity check
               console.log()
               console.log('run smoke test')
@@ -381,7 +379,7 @@ function runapp (args, cb) {
         app: app,
         image: image,
         flags: flags,
-        dbconst: args.db.dbconst,
+        dbconst: args.db.dbconst
       })
       if (flags.fb && builtImages[image.name]) info.flags.fb = false
       debugOut('run app image ' + image.label + ' & attach monitor')
@@ -519,7 +517,7 @@ function grabFiles (args, cb) {
   var folder = logfolder + args.db.label + '/'
   if (!fs.existsSync(folder)) fs.mkdirSync(folder)
   _.each(fs.readdirSync(logfolder), function (file) {
-    if (file != 'dbt-manager') {
+    if (file !== 'dbt-manager') {
       var stats = fs.statSync(logfolder + file)
       if (stats.isFile()) {
         fs.renameSync(logfolder + file, folder + file)
@@ -541,7 +539,7 @@ function summarize () {
   _.each(fs.readdirSync(logfolder), function (subfolder) {
     subfolder = subfolder + '/'
 
-    if (!(subfolder === 'fail/' || subfolder === 'success/' || subfolder == 'dbt-manager/')) {
+    if (!(subfolder === 'fail/' || subfolder === 'success/' || subfolder === 'dbt-manager/')) {
       var stats = fs.statSync(logfolder + subfolder)
       if (stats.isDirectory()) {
         // setup folder in results
@@ -668,7 +666,7 @@ function waitPulled (img, fd, cb) {
   var timeWaitingForFDS = 0
 
   if (!fd) {
-    var startFileCheckInterval = setInterval( function () {
+    var startFileCheckInterval = setInterval(function () {
       timeWaitingForFDS += 1000
       lookForFile(__dirname + '/temp/' + img + '.fds', function (found) {
         if (found) {
@@ -684,7 +682,7 @@ function waitPulled (img, fd, cb) {
     }, 1000)
   } else checkPulled(cb)
 
-  function checkPulled(cb) {
+  function checkPulled (cb) {
     asyncRecurse(init, modifier, check, cb)
 
     function init (cb) {
@@ -807,7 +805,7 @@ function waitReady (ip, port, label, cb) {
   }
 
   function checkIfOnline (ip, port, cb) {
-    debugOut("begin ping");
+    debugOut('begin ping')
     proc.exec('curl -m 1 -v --url ' + ip + ':' + port + '/', function (err, stdout, stderr) {
       if (err) process.stdout.write('') // supress lint
       process.stdout.write('.')

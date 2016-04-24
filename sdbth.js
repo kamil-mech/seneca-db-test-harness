@@ -45,9 +45,12 @@ var failsSoFar = 0
 var dbindices = {}
 var imageindices = {}
 var builtImages = {}
+var times = {}
+var DBTTimeStart = 0
 
 var currentdb // global
 var currentargs // global
+
 
 // preload
 console.log('---------')
@@ -112,6 +115,7 @@ cleanup(function () {
     })
     // in series
     cleanup(function () {
+      DBTTimeStart = new Date()
       async.series(dbtIterations, function () {
         process.kill(process.pid, 'SIGINT')
       })
@@ -131,6 +135,7 @@ function main (args, cb) {
   console.log('start ' + args.db.label)
   if (!fs.existsSync('temp/')) fs.mkdirSync('temp/')
   imageindices = {} // reset counter
+  var startTime = new Date()
   async.series([
     function (next) { rundb(args, next) },
     showProgress,
@@ -145,15 +150,22 @@ function main (args, cb) {
   ], function (err, res) {
     if (err) {
       console.error(err.stack + '\nSkip to next')
-      // fs.appendFileSync(__dirname + '/log/dbt-manager.err', err.stack)
+      showTime();
     }
     cleanup(function () {
       grabFiles(args, function () {
-        console.log('end ' + args.db.label)
+        showTime();
         return cb()
       })
     })
   })
+
+  function showTime () {
+    var execTime = new Date() - startTime
+    if (!times[args.db.name]) times[args.db.name] = []
+    times[args.db.name].push(execTime)
+    console.log('end of ' + args.db.label + ' - case executed in ' + execTime + 'ms')
+  }
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
@@ -574,10 +586,22 @@ function summarize () {
     var fail = results[result].fail
     var total = success + fail
     var percentage = ((success / total) * 100).toFixed(2)
+    var timeMax = 0
+    var timeMin = -1
+    if (times[result].length > 0) timeMin = times[result][0]
+    var timeTotal = 0
+    _.each(times[result], function (measurement) {
+      if (measurement > timeMax) timeMax = measurement
+      else if (measurement < timeMin) timeMin = measurement
+      timeTotal += measurement
+    })
+    var timeAverage = timeTotal / (times[result].length || 1)
+    timeAverage = timeAverage.toFixed(0)
     while (result.length < longest) result = ' ' + result
-    result += '\t' + 'SUCCESS RATE: ' + success + ' / ' + total + ' (' + percentage + '%)\n'
+    result += '\t' + 'SUCCESS RATE: ' + success + ' / ' + total + ' (' + percentage + '%)\t(' + timeMin + '-' + timeMax + 'ms,\t' + timeAverage + ' avg)\n'
     resultStr += result
   })
+  resultStr += '\ntotal execution time: ' + (new Date() - DBTTimeStart) + 'ms\n'
   console.log(resultStr)
   resultStr = 'results:\n\n' + resultStr
   fs.writeFileSync(logfolder + 'readme.md', resultStr)

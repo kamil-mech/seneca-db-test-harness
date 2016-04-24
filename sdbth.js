@@ -647,6 +647,7 @@ function waitBuilt (img, cb) {
       debugOut('isFin: ' + isFin)
 
       if (isErr || isFin) {
+        if (isErr) failsSoFar++
         var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin
         process.stdout.write(msg)
         return cb(true, false)
@@ -701,6 +702,7 @@ function waitPulled (img, fd, cb) {
         debugOut('isFin: ' + isFin)
 
         if (isErr || isFin) {
+          if (isErr) failsSoFar++
           var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin
           process.stdout.write(msg)
           return cb(true, false)
@@ -795,6 +797,7 @@ function waitReady (ip, port, label, cb) {
       debugOut('isFin: ' + isFin)
 
       if (isErr || isFin) {
+        if (isErr) failsSoFar++
         var msg = (isErr) ? ' Error detected at ' + isErr : ' Fin detected at ' + isFin
         process.stdout.write(msg)
         return cb(true, false)

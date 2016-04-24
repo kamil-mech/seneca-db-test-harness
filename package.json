@@ -1,6 +1,6 @@
 {
   "name": "seneca-db-test-harness",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "SDBTH automates the process of testing seneca-stores against seneca applications. It deploys db and app in docker containers. Then it runs tests. Meanwhile it monitors for errors. Many tests can be scheduled at once.",
   "main": "",
   "scripts": {

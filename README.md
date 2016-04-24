@@ -1,4 +1,4 @@
-# Seneca-db-test-harness 0.4.1
+# Seneca-db-test-harness 0.4.2
 
 Tested on **Ubuntu 15.10** with **Node 0.10.38**
 

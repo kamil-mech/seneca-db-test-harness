@@ -14,14 +14,7 @@ https://www.youtube.com/watch?v=VYFfys8LwSk
 
 ## Quick Setup
 
-- Pull [this well app fork](https://github.com/kamil-mech/well/tree/sdbth-4)
-- Inside it `npm install`
-- Inside it `mv options.example.js options.well.js`
-- Pull this repo, so that both folders are side by side
-- Inside this `npm install`
-- Beside both folders, create `sdbth.conf` file and add configuration(see below)
-- Example use: `node main.js well -fb -dbs mem-5 mysql postgresql level jsonfile mongo redis`
-- In case of problems with Redis, see [this issue](https://github.com/kamil-mech/seneca-db-test-harness/issues/2)
+See [demo](https://github.com/kamil-mech/sdbth-demo)
 
 **sdbth.conf**
 ```
